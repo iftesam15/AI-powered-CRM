@@ -1,0 +1,169 @@
+# CRM Sprint Tracker
+
+Living status board for the vertical slices defined in
+[CRM_SPRINT_PLAN.md](./CRM_SPRINT_PLAN.md). The plan says *what* each sprint
+contains and does not change; this file says *where we are* and is updated at
+the start and end of every sprint.
+
+| Field | Value |
+|---|---|
+| Current sprint | **2 — Users, RBAC & Audit spine** |
+| Status | Done |
+| Last updated | 2026-09-05 |
+| Milestone next up | ★ P0 complete after sprint 5 |
+
+---
+
+## Board
+
+| Sprint | Scope | Status | Started | Demoed | Slice |
+|---|---|---|---|---|---|
+| 0 | Scaffold & "Hello CRM" | ✅ Done | 2026-09-03 | 2026-09-03 | API + web + Alembic |
+| 1 | Tenants + Authentication | ✅ Done | 2026-09-04 | 2026-09-04 | API + web + tests |
+| 2 | Users, RBAC & Audit spine | ✅ Done | 2026-09-05 | 2026-09-05 | API + web + tests |
+| 3 | Accounts (E2E CRUD) | ⬜ Not started | — | — | — |
+| 4 | Contacts (+ account links) | ⬜ Not started | — | — | — |
+| 5 | Activities & Tasks (timeline) | ⬜ Not started | — | — | — |
+| 6 | Leads + conversion | ⬜ Not started | — | — | — |
+| 7 | Opportunities + Pipeline kanban | ⬜ Not started | — | — | — |
+| 8 | Search + CSV import/export | ⬜ Not started | — | — | — |
+| 9 | Dashboards & reports | ⬜ Not started | — | — | — |
+| 10 | Hardening + P3 triage | ⬜ Not started | — | — | — |
+
+Status key: ⬜ Not started · 🟡 In progress · 🔵 In review · ✅ Done · ⏸️ Parked
+
+**Every sprint is done only when all five hold** (plan, "Definition of Done"):
+migration applied · happy-path API works · UI wired · at least one integration
+or e2e check · README/Makefile command works.
+
+---
+
+## Sprint 0 — Scaffold & "Hello CRM" ✅
+
+Runnable monorepo: FastAPI on :8000, Next.js on :3000, Postgres/Redis in
+Compose, empty Alembic baseline.
+
+- [x] API OpenAPI docs at `/docs`
+- [x] Web loads without errors
+- [x] One Alembic revision creates the base schema (`0001_baseline`)
+
+**Notes.** Compose publishes Postgres on **5433** to avoid colliding with a
+local install. The Docker path is written but unverified — it was built on a
+machine without Docker.
+
+---
+
+## Sprint 1 — Tenants + Authentication ✅
+
+Login, logout, refresh, forgot/reset password, lockout, multi-tenant users.
+
+- [x] Unauthenticated `/api/v1/accounts` → 401
+- [x] Dashboard redirects to `/login` when logged out
+- [x] Reset email delivered (console sender locally, SMTP adapter behind a protocol)
+
+**Shipped**
+
+| Layer | What |
+|---|---|
+| Backend | `tenants`, `auth`, `users` models; JWT access + rotating refresh; bcrypt; lockout counter; single-use reset tokens |
+| Backend | `integrations/mail` (console + SMTP behind `MailSender`) |
+| Scripts | `scripts/create_tenant.py`, `scripts/seed_data.py` |
+| Frontend | `(auth)/login`, `forgot-password`, `reset-password`; httpOnly cookie session; `proxy.ts` edge gate; authenticated proxy at `/api/crm/*` |
+| Tests | `tests/integration/test_auth.py` — login, lockout, single-use reset, tenant isolation |
+
+**Notes.** The access token never reaches browser JavaScript; it lives in an
+httpOnly cookie and the Next proxy attaches it server side. Mock auth
+(`NEXT_PUBLIC_USE_MOCK_API=true`) reproduces lockout and reset semantics so the
+slice is clickable without a backend.
+
+---
+
+## Sprint 2 — Users, RBAC & Audit spine ✅
+
+Admin manages users and roles; every mutating call writes an append-only audit row.
+
+- [x] Four roles enforced on at least one admin endpoint
+- [x] Audit list API + settings/audit table
+
+**Shipped**
+
+| Layer | What |
+|---|---|
+| Backend | `users` module: list (search/filter/paginate), create, read, update, role change, activate/deactivate — all tenant-scoped |
+| Backend | `audit` module: append-only `audit_logs`, `AuditService.record(...)`, admin query API |
+| Backend | `core/pagination.py` — one list envelope for every module from here on |
+| Backend | Audit hooks on auth (login, failed login, lockout, logout, password reset) and on every user mutation |
+| Frontend | `/settings/users` list + create/edit dialogs, `/settings/audit` log, `/settings/tenant` read-only org card |
+| Frontend | Mock handlers for users + audit so the slice is clickable with `NEXT_PUBLIC_USE_MOCK_API=true` |
+| Tests | `tests/integration/test_users.py`, `tests/integration/test_audit.py` |
+
+**Guardrails worth remembering**
+
+- A user cannot change their own role or deactivate themselves — that is the
+  fastest way to lock an organisation out of its own tenant.
+- The last active admin in a tenant cannot be demoted or deactivated.
+- Cross-tenant ids answer `403`, never `404`, so an id cannot be probed for
+  existence in another tenant.
+- Audit rows are append-only: there is no update or delete route, by design.
+
+**Learning checkpoint.** *Authentication* is who you are — proven once, at
+`/auth/login`, and carried by the JWT. *Authorization* is what you may do —
+re-derived from the token on every single request by
+`require_permission(...)`, never trusted from the client.
+
+---
+
+## Sprint 3 — Accounts ⬜ (next)
+
+**Goal:** Full account list → create → detail → edit.
+
+- [ ] OpenAPI shows account endpoints
+- [ ] List pagination works with >1 page of seed data
+- [ ] Tenant isolation test: A's account id → 403 for B
+
+**Ready before starting**
+
+- `core/pagination.py` and the `Page` envelope exist (sprint 2) — reuse, do not
+  re-invent.
+- `BaseTenantRepository` is the module template; `accounts/router.py` is
+  currently a stub returning an empty list and should be replaced, not extended.
+- The `users` module is the reference implementation of router → service →
+  repository → schemas for this codebase.
+
+---
+
+## Sprints 4–10 ⬜
+
+Not started. Scope, learning goals and DoD live in
+[CRM_SPRINT_PLAN.md](./CRM_SPRINT_PLAN.md); this file gets a section per sprint
+as each one starts.
+
+---
+
+## Carried debt
+
+Things known to be unfinished, deliberately. Reviewed at sprint 10 (hardening).
+
+| # | Item | Since | Notes |
+|---|---|---|---|
+| 1 | Docker Compose path unverified | S0 | Written on a machine without Docker |
+| 2 | No CI | S0 | Lint + typecheck + tests run locally only |
+| 3 | Refresh-token rotation has no reuse detection | S1 | A replayed old token is rejected, but the family is not revoked |
+| 4 | Mock mode is a parallel implementation | S1 | Every module now needs a mock handler too, or its page 501s by default |
+| 5 | Offset pagination, not keyset | S2 | Fine at seed volume; revisit when a list exceeds a few thousand rows |
+| 6 | Audit has no retention or export | S2 | Table grows unbounded; no CSV until sprint 8 |
+| 7 | `/settings/tenant` is read-only | S2 | Editing org name/currency is not in any sprint yet |
+
+---
+
+## Cadence
+
+One week per sprint, or two if working evenings only. Keep the vertical slice
+either way — do not batch "all backend now, all UI later".
+
+| Day | Focus |
+|---|---|
+| Mon | Read the sprint's "You will learn"; sketch model + API; write a failing test |
+| Tue–Wed | Backend module to green tests |
+| Thu | Frontend wired to the API |
+| Fri | Demo script, sharp edges, retro note in this file |

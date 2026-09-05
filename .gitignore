@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Environment & Secret files (CRITICAL)
+.env
+.env.local
+.env.*.local
+*.env
+
+# Next.js / Build outputs
+.next/
+out/
+build/
+dist/
+
+# IDE / System files
+.vscode/
+.idea/
+.DS_Store
+*.log
+Thumbs.db

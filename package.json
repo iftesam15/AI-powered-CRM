@@ -1,0 +1,31 @@
+{
+  "name": "crm-demo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace web",
+    "build": "npm run build --workspace web",
+    "start": "npm run start --workspace web",
+    "lint": "npm run lint --workspace web",
+    "typecheck": "npm run typecheck --workspace web",
+    "api": "node scripts/api.mjs uvicorn crm.main:app --host 127.0.0.1 --port 8000 --reload",
+    "api:migrate": "node scripts/api.mjs alembic upgrade head",
+    "api:seed": "node scripts/api.mjs scripts/seed_data.py",
+    "api:migrate:down": "node scripts/api.mjs alembic downgrade -1",
+    "api:revision": "node scripts/api.mjs alembic revision --autogenerate -m",
+    "api:test": "node scripts/api.mjs pytest",
+    "api:lint": "node scripts/api.mjs ruff check .",
+    "api:format": "node scripts/api.mjs ruff format .",
+    "api:typecheck": "node scripts/api.mjs mypy",
+    "up": "docker compose up -d --build",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}
