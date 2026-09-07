@@ -24,6 +24,8 @@ from crm.modules.accounts.schemas import (
     AccountUpdate,
 )
 from crm.modules.accounts.service import AccountService
+from crm.modules.contacts.schemas import ContactRead
+from crm.modules.contacts.service import ContactService
 from crm.modules.users.models import User
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
@@ -103,6 +105,24 @@ async def get_account(
     service = AccountService(session)
     account = await service.get_account_in_tenant(tenant.id, account_id)
     return AccountRead.model_validate(account)
+
+
+@router.get(
+    "/{account_id}/contacts",
+    response_model=list[ContactRead],
+    summary="List contacts linked to an account",
+)
+async def list_account_contacts(
+    _: ReadAccess,
+    tenant: CurrentTenant,
+    session: Annotated[AsyncSession, Depends(get_db)],
+    account_id: UUID,
+) -> list[ContactRead]:
+    """Fetch contacts linked to an account in the caller's tenant. Requires `accounts:read`."""
+    contact_service = ContactService(session)
+    return await contact_service.get_contacts_for_account(tenant.id, account_id)
+
+
 
 
 @router.patch(

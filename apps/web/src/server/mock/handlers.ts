@@ -5,15 +5,22 @@ import { NextResponse } from "next/server";
 import { PERMISSIONS, permissionsForRole, ROLE_LABELS } from "@/lib/permissions";
 import {
   isLocked,
+  mockCheckDuplicateContact,
   mockCreateAccount,
+  mockCreateContact,
   mockCreateUser,
   mockDeleteAccount,
+  mockDeleteContact,
   mockGetAccount,
+  mockGetAccountContacts,
+  mockGetContact,
   mockGetUser,
   mockListAccounts,
   mockListAudit,
+  mockListContacts,
   mockListUsers,
   mockUpdateAccount,
+  mockUpdateContact,
   mockUpdateUser,
   mockUserForToken,
   type MockAccount,
@@ -299,6 +306,9 @@ export async function handleMockApiRequest(
   if (module === "accounts") {
     return handleAccounts(request.method, segments, search, body, actor);
   }
+  if (module === "contacts") {
+    return handleContacts(request.method, segments, search, body, actor);
+  }
   return null;
 }
 
@@ -324,7 +334,7 @@ function handleAccounts(
   body: unknown,
   actor: MockUserRecord,
 ): NextResponse | null {
-  const [accountId] = segments;
+  const [accountId, subroute] = segments;
 
   if (!accountId) {
     if (method === "GET") {
@@ -367,6 +377,16 @@ function handleAccounts(
     return null;
   }
 
+  if (subroute === "contacts") {
+    if (method === "GET") {
+      if (!grants(actor, PERMISSIONS.accountsRead)) return forbidden();
+      const contacts = mockGetAccountContacts(actor.tenantId, accountId);
+      if (!contacts) return forbidden();
+      return NextResponse.json(contacts);
+    }
+    return null;
+  }
+
   // Account detail routes: /accounts/:id
   if (method === "GET") {
     if (!grants(actor, PERMISSIONS.accountsRead)) return forbidden();
@@ -403,3 +423,106 @@ function handleAccounts(
 
   return null;
 }
+
+function handleContacts(
+  method: string,
+  segments: string[],
+  search: URLSearchParams,
+  body: unknown,
+  actor: MockUserRecord,
+): NextResponse | null {
+  const [contactId] = segments;
+
+  if (contactId === "check-duplicate") {
+    if (method === "GET") {
+      if (!grants(actor, PERMISSIONS.contactsRead)) return forbidden();
+      const email = search.get("email") || "";
+      const res = mockCheckDuplicateContact(actor.tenantId, email);
+      return NextResponse.json(res);
+    }
+    return null;
+  }
+
+  if (!contactId) {
+    if (method === "GET") {
+      if (!grants(actor, PERMISSIONS.contactsRead)) return forbidden();
+      const bounds = paging(search);
+      if (!bounds) return invalid({ limit: ["Input should be between 1 and 100"] });
+
+      const res = mockListContacts(actor.tenantId, {
+        q: search.get("q") ?? undefined,
+        account_id: search.get("account_id") ?? undefined,
+        owner_id: search.get("owner_id") ?? undefined,
+        sort: search.get("sort") ?? undefined,
+        desc: search.get("desc") === "true",
+        limit: bounds.limit,
+        offset: bounds.offset,
+      });
+      return page(res.items, res.total, res.limit, res.offset);
+    }
+
+    if (method === "POST") {
+      if (!grants(actor, PERMISSIONS.contactsWrite)) return forbidden();
+      if (!body || typeof body !== "object") return invalid({ body: ["Required"] });
+      const b = body as Record<string, unknown>;
+      if (!b.first_name || typeof b.first_name !== "string" || !b.first_name.trim()) {
+        return invalid({ first_name: ["First name is required"] });
+      }
+      if (!b.last_name || typeof b.last_name !== "string" || !b.last_name.trim()) {
+        return invalid({ last_name: ["Last name is required"] });
+      }
+
+      const res = mockCreateContact(actor.id, {
+        first_name: b.first_name,
+        last_name: b.last_name,
+        email: typeof b.email === "string" ? b.email : null,
+        phone: typeof b.phone === "string" ? b.phone : null,
+        title: typeof b.title === "string" ? b.title : null,
+        account_id: typeof b.account_id === "string" ? b.account_id : null,
+        owner_id: typeof b.owner_id === "string" ? b.owner_id : null,
+      });
+
+      if (res.kind === "forbidden") return forbidden();
+      return NextResponse.json(res.contact, { status: 201 });
+    }
+
+    return null;
+  }
+
+  // Contact detail routes: /contacts/:id
+  if (method === "GET") {
+    if (!grants(actor, PERMISSIONS.contactsRead)) return forbidden();
+    const contact = mockGetContact(actor.tenantId, contactId);
+    if (!contact) return forbidden();
+    return NextResponse.json(contact);
+  }
+
+  if (method === "PATCH") {
+    if (!grants(actor, PERMISSIONS.contactsWrite)) return forbidden();
+    if (!body || typeof body !== "object") return invalid({ body: ["Required"] });
+    const b = body as Record<string, unknown>;
+
+    const res = mockUpdateContact(actor.id, contactId, {
+      first_name: typeof b.first_name === "string" ? b.first_name : undefined,
+      last_name: typeof b.last_name === "string" ? b.last_name : undefined,
+      email: typeof b.email === "string" ? b.email : b.email === null ? null : undefined,
+      phone: typeof b.phone === "string" ? b.phone : b.phone === null ? null : undefined,
+      title: typeof b.title === "string" ? b.title : b.title === null ? null : undefined,
+      account_id: typeof b.account_id === "string" ? b.account_id : b.account_id === null ? null : undefined,
+      owner_id: typeof b.owner_id === "string" ? b.owner_id : b.owner_id === null ? null : undefined,
+    });
+
+    if (res.kind === "forbidden") return forbidden();
+    return NextResponse.json(res.contact);
+  }
+
+  if (method === "DELETE") {
+    if (!grants(actor, PERMISSIONS.contactsWrite)) return forbidden();
+    const res = mockDeleteContact(actor.id, contactId);
+    if (res.kind === "forbidden") return forbidden();
+    return new NextResponse(null, { status: 204 });
+  }
+
+  return null;
+}
+

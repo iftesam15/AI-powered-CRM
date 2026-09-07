@@ -29,6 +29,11 @@ class AuditAction(StrEnum):
     ACCOUNT_UPDATED = "account.updated"
     ACCOUNT_DELETED = "account.deleted"
 
+    # Contact administration
+    CONTACT_CREATED = "contact.created"
+    CONTACT_UPDATED = "contact.updated"
+    CONTACT_DELETED = "contact.deleted"
+
 
 class AuditEntity(StrEnum):
     USER = "user"

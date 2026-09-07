@@ -145,6 +145,57 @@ async def seed() -> None:
                 )
                 await account_repo.create(new_acc)
 
+        # 4. Check or create demo contacts (Sprint 4)
+        from crm.modules.contacts.models import Contact
+        from crm.modules.contacts.repository import ContactRepository
+
+        contact_repo = ContactRepository(session)
+        acme_acc = await account_repo.get_by_name(tenant.id, "Acme Logistics Corp")
+        apex_acc = await account_repo.get_by_name(tenant.id, "Apex Global Freight")
+
+        contacts_to_seed = [
+            {
+                "first_name": "Jane",
+                "last_name": "Doe",
+                "email": "jane.doe@acmelogistics.example.com",
+                "phone": "+1 (555) 019-2834",
+                "title": "VP of Logistics",
+                "account_id": acme_acc.id if acme_acc else None,
+            },
+            {
+                "first_name": "Robert",
+                "last_name": "Smith",
+                "email": "r.smith@acmelogistics.example.com",
+                "phone": "+1 (555) 019-8273",
+                "title": "Supply Chain Director",
+                "account_id": acme_acc.id if acme_acc else None,
+            },
+            {
+                "first_name": "Alice",
+                "last_name": "Johnson",
+                "email": "ajohnson@apexglobal.example.com",
+                "phone": "+1 (555) 019-3746",
+                "title": "Head of Procurement",
+                "account_id": apex_acc.id if apex_acc else None,
+            },
+        ]
+
+        for c_data in contacts_to_seed:
+            matches = await contact_repo.find_by_email(tenant.id, c_data["email"])
+            if not matches:
+                print(f"Creating contact '{c_data['first_name']} {c_data['last_name']}'...")
+                new_c = Contact(
+                    tenant_id=tenant.id,
+                    first_name=c_data["first_name"],
+                    last_name=c_data["last_name"],
+                    email=c_data["email"],
+                    phone=c_data["phone"],
+                    title=c_data["title"],
+                    account_id=c_data["account_id"],
+                    owner_id=admin_id,
+                )
+                await contact_repo.create(new_c)
+
         await session.commit()
         print("Database seeding completed successfully.")
         await engine.dispose()

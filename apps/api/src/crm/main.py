@@ -21,6 +21,7 @@ from crm.core.middleware import RequestContextMiddleware
 from crm.modules.accounts.router import router as accounts_router
 from crm.modules.audit.router import router as audit_router
 from crm.modules.auth.router import router as auth_router
+from crm.modules.contacts.router import router as contacts_router
 from crm.modules.users.router import router as users_router
 
 logger = logging.getLogger(__name__)
@@ -91,6 +92,7 @@ def create_app() -> FastAPI:
     v1.include_router(users_router)
     v1.include_router(audit_router)
     v1.include_router(accounts_router)
+    v1.include_router(contacts_router)
     app.include_router(v1)
 
     return app

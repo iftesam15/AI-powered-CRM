@@ -63,10 +63,25 @@ export interface MockAccount {
   updatedAt: number;
 }
 
+export interface MockContact {
+  id: string;
+  tenantId: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  title: string | null;
+  accountId: string | null;
+  ownerId: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
 interface MockDatabase {
   tenants: Map<string, SessionTenant>;
   users: Map<string, MockUser>;
   accounts: Map<string, MockAccount>;
+  contacts: Map<string, MockContact>;
   resetTokens: Map<string, ResetToken>;
   sessions: Map<string, string>;
   auditLogs: MockAuditEntry[];
@@ -217,10 +232,62 @@ function seed(): MockDatabase {
     ],
   ]);
 
+  const contacts = new Map<string, MockContact>([
+    [
+      "cnt-1",
+      {
+        id: "cnt-1",
+        tenantId: TENANT_ID,
+        firstName: "Jane",
+        lastName: "Doe",
+        email: "jane.doe@acmelogistics.example.com",
+        phone: "+1 (555) 019-2834",
+        title: "VP of Logistics",
+        accountId: "acc-1",
+        ownerId: ADMIN_ID,
+        createdAt: now - 12 * DAY,
+        updatedAt: now - 12 * DAY,
+      },
+    ],
+    [
+      "cnt-2",
+      {
+        id: "cnt-2",
+        tenantId: TENANT_ID,
+        firstName: "Robert",
+        lastName: "Smith",
+        email: "r.smith@acmelogistics.example.com",
+        phone: "+1 (555) 019-8273",
+        title: "Supply Chain Director",
+        accountId: "acc-1",
+        ownerId: ADMIN_ID,
+        createdAt: now - 8 * DAY,
+        updatedAt: now - 8 * DAY,
+      },
+    ],
+    [
+      "cnt-3",
+      {
+        id: "cnt-3",
+        tenantId: TENANT_ID,
+        firstName: "Alice",
+        lastName: "Johnson",
+        email: "ajohnson@apexglobal.example.com",
+        phone: "+1 (555) 019-3746",
+        title: "Head of Procurement",
+        accountId: "acc-2",
+        ownerId: REP_ID,
+        createdAt: now - 4 * DAY,
+        updatedAt: now - 4 * DAY,
+      },
+    ],
+  ]);
+
   return {
     tenants,
     users,
     accounts,
+    contacts,
     resetTokens: new Map(),
     sessions: new Map(),
     auditLogs: [],
@@ -847,4 +914,288 @@ export function mockDeleteAccount(actorId: string, accountId: string) {
 
   return { kind: "ok" as const };
 }
+
+// --- contacts ----------------------------------------------------------------
+
+export function mockListContacts(
+  tenantId: string,
+  query?: { q?: string; account_id?: string; owner_id?: string; sort?: string; desc?: boolean; limit?: number; offset?: number },
+) {
+  let items = [...db.contacts.values()].filter((c) => c.tenantId === tenantId);
+
+  if (query?.q?.trim()) {
+    const term = query.q.trim().toLowerCase();
+    items = items.filter(
+      (c) =>
+        c.firstName.toLowerCase().includes(term) ||
+        c.lastName.toLowerCase().includes(term) ||
+        (c.email && c.email.toLowerCase().includes(term)) ||
+        (c.phone && c.phone.toLowerCase().includes(term)) ||
+        (c.title && c.title.toLowerCase().includes(term)),
+    );
+  }
+
+  if (query?.account_id) {
+    items = items.filter((c) => c.accountId === query.account_id);
+  }
+
+  const sortKey = query?.sort ?? "lastName";
+  items.sort((a, b) => {
+    let aVal: any = (a as any)[sortKey] ?? "";
+    let bVal: any = (b as any)[sortKey] ?? "";
+    if (typeof aVal === "string") aVal = aVal.toLowerCase();
+    if (typeof bVal === "string") bVal = bVal.toLowerCase();
+
+    if (aVal < bVal) return query?.desc ? 1 : -1;
+    if (aVal > bVal) return query?.desc ? -1 : 1;
+    return 0;
+  });
+
+  const total = items.length;
+  const limit = query?.limit ?? 50;
+  const offset = query?.offset ?? 0;
+  const page = items.slice(offset, offset + limit).map((c) => {
+    const acc = c.accountId ? db.accounts.get(c.accountId) : null;
+    return {
+      id: c.id,
+      tenant_id: c.tenantId,
+      first_name: c.firstName,
+      last_name: c.lastName,
+      email: c.email,
+      phone: c.phone,
+      title: c.title,
+      account_id: c.accountId,
+      account_name: acc ? acc.name : null,
+      owner_id: c.ownerId,
+      created_at: new Date(c.createdAt).toISOString(),
+      updated_at: new Date(c.updatedAt).toISOString(),
+    };
+  });
+
+  return { items: page, total, limit, offset };
+}
+
+export function mockGetContact(tenantId: string, contactId: string) {
+  const c = db.contacts.get(contactId);
+  if (!c || c.tenantId !== tenantId) return null;
+  const acc = c.accountId ? db.accounts.get(c.accountId) : null;
+  return {
+    id: c.id,
+    tenant_id: c.tenantId,
+    first_name: c.firstName,
+    last_name: c.lastName,
+    email: c.email,
+    phone: c.phone,
+    title: c.title,
+    account_id: c.accountId,
+    account_name: acc ? acc.name : null,
+    owner_id: c.ownerId,
+    created_at: new Date(c.createdAt).toISOString(),
+    updated_at: new Date(c.updatedAt).toISOString(),
+  };
+}
+
+export function mockGetAccountContacts(tenantId: string, accountId: string) {
+  const account = db.accounts.get(accountId);
+  if (!account || account.tenantId !== tenantId) return null;
+
+  return [...db.contacts.values()]
+    .filter((c) => c.tenantId === tenantId && c.accountId === accountId)
+    .map((c) => ({
+      id: c.id,
+      tenant_id: c.tenantId,
+      first_name: c.firstName,
+      last_name: c.lastName,
+      email: c.email,
+      phone: c.phone,
+      title: c.title,
+      account_id: c.accountId,
+      account_name: account.name,
+      owner_id: c.ownerId,
+      created_at: new Date(c.createdAt).toISOString(),
+      updated_at: new Date(c.updatedAt).toISOString(),
+    }));
+}
+
+export function mockCheckDuplicateContact(tenantId: string, email: string) {
+  if (!email || !email.trim()) {
+    return { is_duplicate: false, matching_count: 0, matching_contacts: [] };
+  }
+  const needle = email.trim().toLowerCase();
+  const matches = [...db.contacts.values()]
+    .filter((c) => c.tenantId === tenantId && c.email?.toLowerCase() === needle)
+    .map((c) => {
+      const acc = c.accountId ? db.accounts.get(c.accountId) : null;
+      return {
+        id: c.id,
+        tenant_id: c.tenantId,
+        first_name: c.firstName,
+        last_name: c.lastName,
+        email: c.email,
+        phone: c.phone,
+        title: c.title,
+        account_id: c.accountId,
+        account_name: acc ? acc.name : null,
+        owner_id: c.ownerId,
+        created_at: new Date(c.createdAt).toISOString(),
+        updated_at: new Date(c.updatedAt).toISOString(),
+      };
+    });
+
+  return {
+    is_duplicate: matches.length > 0,
+    matching_count: matches.length,
+    matching_contacts: matches,
+  };
+}
+
+export function mockCreateContact(
+  actorId: string,
+  payload: { first_name: string; last_name: string; email?: string | null; phone?: string | null; title?: string | null; account_id?: string | null; owner_id?: string | null },
+) {
+  const actor = db.users.get(actorId);
+  if (!actor) return { kind: "forbidden" as const, detail: "You do not have access." };
+
+  if (payload.account_id) {
+    const acc = db.accounts.get(payload.account_id);
+    if (!acc || acc.tenantId !== actor.tenantId) {
+      return { kind: "forbidden" as const, detail: "Specified account does not belong to your organization." };
+    }
+  }
+
+  const id = `cnt-${randomUUID()}`;
+  const now = Date.now();
+  const contact: MockContact = {
+    id,
+    tenantId: actor.tenantId,
+    firstName: payload.first_name.trim(),
+    lastName: payload.last_name.trim(),
+    email: payload.email?.trim().toLowerCase() || null,
+    phone: payload.phone?.trim() || null,
+    title: payload.title?.trim() || null,
+    accountId: payload.account_id || null,
+    ownerId: payload.owner_id || actorId,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  db.contacts.set(id, contact);
+
+  const fullName = `${contact.firstName} ${contact.lastName}`;
+  record({
+    tenantId: actor.tenantId,
+    actor,
+    action: "contact.created",
+    entityType: "contact",
+    entityId: id,
+    summary: `Created contact '${fullName}'`,
+    changes: {
+      name: { before: null, after: fullName },
+      email: { before: null, after: contact.email },
+    },
+  });
+
+  const acc = contact.accountId ? db.accounts.get(contact.accountId) : null;
+  const dto = {
+    id: contact.id,
+    tenant_id: contact.tenantId,
+    first_name: contact.firstName,
+    last_name: contact.lastName,
+    email: contact.email,
+    phone: contact.phone,
+    title: contact.title,
+    account_id: contact.accountId,
+    account_name: acc ? acc.name : null,
+    owner_id: contact.ownerId,
+    created_at: new Date(contact.createdAt).toISOString(),
+    updated_at: new Date(contact.updatedAt).toISOString(),
+  };
+
+  return { kind: "ok" as const, contact: dto };
+}
+
+export function mockUpdateContact(
+  actorId: string,
+  contactId: string,
+  payload: { first_name?: string | null; last_name?: string | null; email?: string | null; phone?: string | null; title?: string | null; account_id?: string | null; owner_id?: string | null },
+) {
+  const actor = db.users.get(actorId);
+  if (!actor) return { kind: "forbidden" as const, detail: "You do not have access." };
+
+  const contact = db.contacts.get(contactId);
+  if (!contact || contact.tenantId !== actor.tenantId) {
+    return { kind: "forbidden" as const, detail: "You do not have access to this contact." };
+  }
+
+  if (payload.account_id) {
+    const acc = db.accounts.get(payload.account_id);
+    if (!acc || acc.tenantId !== actor.tenantId) {
+      return { kind: "forbidden" as const, detail: "Specified account does not belong to your organization." };
+    }
+  }
+
+  if (payload.first_name !== undefined && payload.first_name !== null) contact.firstName = payload.first_name.trim();
+  if (payload.last_name !== undefined && payload.last_name !== null) contact.lastName = payload.last_name.trim();
+  if (payload.email !== undefined) contact.email = payload.email?.trim().toLowerCase() || null;
+  if (payload.phone !== undefined) contact.phone = payload.phone?.trim() || null;
+  if (payload.title !== undefined) contact.title = payload.title?.trim() || null;
+  if (payload.account_id !== undefined) contact.accountId = payload.account_id;
+  if (payload.owner_id !== undefined) contact.ownerId = payload.owner_id;
+  contact.updatedAt = Date.now();
+
+  const fullName = `${contact.firstName} ${contact.lastName}`;
+  record({
+    tenantId: actor.tenantId,
+    actor,
+    action: "contact.updated",
+    entityType: "contact",
+    entityId: contact.id,
+    summary: `Updated contact '${fullName}'`,
+    changes: null,
+  });
+
+  const acc = contact.accountId ? db.accounts.get(contact.accountId) : null;
+  const dto = {
+    id: contact.id,
+    tenant_id: contact.tenantId,
+    first_name: contact.firstName,
+    last_name: contact.lastName,
+    email: contact.email,
+    phone: contact.phone,
+    title: contact.title,
+    account_id: contact.accountId,
+    account_name: acc ? acc.name : null,
+    owner_id: contact.ownerId,
+    created_at: new Date(contact.createdAt).toISOString(),
+    updated_at: new Date(contact.updatedAt).toISOString(),
+  };
+
+  return { kind: "ok" as const, contact: dto };
+}
+
+export function mockDeleteContact(actorId: string, contactId: string) {
+  const actor = db.users.get(actorId);
+  if (!actor) return { kind: "forbidden" as const, detail: "You do not have access." };
+
+  const contact = db.contacts.get(contactId);
+  if (!contact || contact.tenantId !== actor.tenantId) {
+    return { kind: "forbidden" as const, detail: "You do not have access to this contact." };
+  }
+
+  const fullName = `${contact.firstName} ${contact.lastName}`;
+  db.contacts.delete(contactId);
+
+  record({
+    tenantId: actor.tenantId,
+    actor,
+    action: "contact.deleted",
+    entityType: "contact",
+    entityId: contactId,
+    summary: `Deleted contact '${fullName}'`,
+    changes: null,
+  });
+
+  return { kind: "ok" as const };
+}
+
 

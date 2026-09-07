@@ -24,6 +24,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { accountDetailQueryOptions } from "@/features/accounts/api/queries";
 import { EditAccountDialog } from "@/features/accounts/components/edit-account-dialog";
 import type { CrmAccount } from "@/features/accounts/types";
+import { accountContactsQueryOptions } from "@/features/contacts/api/queries";
+import { CreateContactDialog } from "@/features/contacts/components/create-contact-dialog";
 import { PERMISSIONS } from "@/lib/permissions";
 import { formatDate } from "@/lib/utils";
 
@@ -34,6 +36,10 @@ interface AccountDetailViewProps {
 export function AccountDetailView({ id }: AccountDetailViewProps) {
   const { data: account, isLoading, isError } = useQuery(
     accountDetailQueryOptions(id)
+  );
+
+  const { data: contacts } = useQuery(
+    accountContactsQueryOptions(id)
   );
 
   const [editing, setEditing] = useState<CrmAccount | null>(null);
@@ -231,15 +237,35 @@ export function AccountDetailView({ id }: AccountDetailViewProps) {
 
         <TabsContent value="contacts">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Linked Contacts</CardTitle>
+              <CreateContactDialog defaultAccountId={account.id} />
             </CardHeader>
             <CardContent>
-              <EmptyState
-                icon={Contact}
-                title="No linked contacts yet"
-                description="Contacts linked to this account will appear here in Sprint 4."
-              />
+              {!contacts || contacts.length === 0 ? (
+                <EmptyState
+                  icon={Contact}
+                  title="No linked contacts yet"
+                  description="No contacts are linked to this account yet. Click 'Add Contact' to add one."
+                />
+              ) : (
+                <div className="divide-y rounded-md border">
+                  {contacts.map((c) => (
+                    <div key={c.id} className="flex items-center justify-between p-3 text-sm hover:bg-muted/50 transition-colors">
+                      <div>
+                        <Link href={`/contacts/${c.id}`} className="font-medium hover:underline text-primary">
+                          {c.first_name} {c.last_name}
+                        </Link>
+                        {c.title && <span className="text-xs text-muted-foreground ml-2">({c.title})</span>}
+                        {c.email && <div className="text-xs text-muted-foreground">{c.email}</div>}
+                      </div>
+                      <Button asChild size="sm" variant="ghost">
+                        <Link href={`/contacts/${c.id}`}>View</Link>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

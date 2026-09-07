@@ -7,7 +7,7 @@ the start and end of every sprint.
 
 | Field | Value |
 |---|---|
-| Current sprint | **3 — Accounts (E2E CRUD)** |
+| Current sprint | **4 — Contacts (+ account links)** |
 | Status | Done |
 | Last updated | 2026-09-07 |
 | Milestone next up | ★ P0 complete after sprint 5 |
@@ -22,7 +22,7 @@ the start and end of every sprint.
 | 1 | Tenants + Authentication | ✅ Done | 2026-09-04 | 2026-09-04 | API + web + tests |
 | 2 | Users, RBAC & Audit spine | ✅ Done | 2026-09-05 | 2026-09-05 | API + web + tests |
 | 3 | Accounts (E2E CRUD) | ✅ Done | 2026-09-07 | 2026-09-07 | API + web + tests |
-| 4 | Contacts (+ account links) | ⬜ Not started | — | — | — |
+| 4 | Contacts (+ account links) | ✅ Done | 2026-09-07 | 2026-09-07 | API + web + tests |
 | 5 | Activities & Tasks (timeline) | ⬜ Not started | — | — | — |
 | 6 | Leads + conversion | ⬜ Not started | — | — | — |
 | 7 | Opportunities + Pipeline kanban | ⬜ Not started | — | — | — |
@@ -135,7 +135,31 @@ re-derived from the token on every single request by
 
 ---
 
-## Sprints 4–10 ⬜
+## Sprint 4 — Contacts ✅
+
+**Goal:** Contacts CRUD linked to a primary account; account detail shows related contacts; duplicate email warning.
+
+- [x] Cannot attach a contact to another tenant's account (403 Forbidden)
+- [x] Account detail lists contacts and provides quick-add contact shortcut
+- [x] Duplicate email warning check on contact creation
+
+**Shipped**
+
+| Layer | What |
+|---|---|
+| Backend | `contacts` module: model, migration `0005_contacts_table`, schemas, repository, service, router |
+| Backend | Cross-tenant account linking protection & duplicate email warning endpoint `/contacts/check-duplicate` |
+| Backend | Audit hooks for `contact.created`, `contact.updated`, `contact.deleted` |
+| Scripts | `scripts/seed_data.py` seeds contacts linked to demo accounts |
+| Frontend | `/contacts` data table, search/filter, pagination, create/edit modals with duplicate email banner, `/contacts/[id]` detail view |
+| Frontend | Account detail view updated with Contacts tab and quick add button |
+| Frontend | Mock store and handlers for `NEXT_PUBLIC_USE_MOCK_API=true` |
+| Navigation | `CURRENT_SPRINT = 4` unlocks Contacts navigation item |
+| Tests | `tests/integration/test_contacts.py` — CRUD, RBAC, pagination, tenant isolation, cross-tenant account check |
+
+---
+
+## Sprints 5–10 ⬜
 
 Not started. Scope, learning goals and DoD live in
 [CRM_SPRINT_PLAN.md](./CRM_SPRINT_PLAN.md); this file gets a section per sprint
