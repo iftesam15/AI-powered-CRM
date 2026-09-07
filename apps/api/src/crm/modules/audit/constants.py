@@ -24,6 +24,11 @@ class AuditAction(StrEnum):
     USER_ACTIVATED = "user.activated"
     USER_DEACTIVATED = "user.deactivated"
 
+    # Account administration
+    ACCOUNT_CREATED = "account.created"
+    ACCOUNT_UPDATED = "account.updated"
+    ACCOUNT_DELETED = "account.deleted"
+
 
 class AuditEntity(StrEnum):
     USER = "user"

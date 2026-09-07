@@ -62,9 +62,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_audit_logs")),
     )
     op.create_index(op.f("ix_audit_logs_id"), "audit_logs", ["id"], unique=False)
-    op.create_index(
-        op.f("ix_audit_logs_tenant_id"), "audit_logs", ["tenant_id"], unique=False
-    )
+    op.create_index(op.f("ix_audit_logs_tenant_id"), "audit_logs", ["tenant_id"], unique=False)
 
     # The three ways the log is actually read: newest-first for a tenant,
     # filtered by action, and the trail of one record.

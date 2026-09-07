@@ -40,9 +40,7 @@ async def test_login_invalid_password(client: AsyncClient, admin_user_a: User) -
 
 
 @pytest.mark.asyncio
-async def test_login_lockout_after_max_attempts(
-    client: AsyncClient, admin_user_a: User
-) -> None:
+async def test_login_lockout_after_max_attempts(client: AsyncClient, admin_user_a: User) -> None:
     """Five consecutive wrong password attempts trigger a 429 account lockout."""
     for _ in range(4):
         res = await client.post(

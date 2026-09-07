@@ -198,16 +198,12 @@ def admin_token_b(admin_user_b: User) -> str:
 
 @pytest.fixture
 def manager_token_a(manager_user_a: User) -> str:
-    return create_access_token(
-        manager_user_a.id, manager_user_a.tenant_id, manager_user_a.role
-    )
+    return create_access_token(manager_user_a.id, manager_user_a.tenant_id, manager_user_a.role)
 
 
 @pytest.fixture
 def readonly_token_a(readonly_user_a: User) -> str:
-    return create_access_token(
-        readonly_user_a.id, readonly_user_a.tenant_id, readonly_user_a.role
-    )
+    return create_access_token(readonly_user_a.id, readonly_user_a.tenant_id, readonly_user_a.role)
 
 
 def auth(token: str) -> dict[str, str]:

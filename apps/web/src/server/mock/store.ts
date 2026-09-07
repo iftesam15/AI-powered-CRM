@@ -50,9 +50,23 @@ export interface MockAuditEntry {
   createdAt: number;
 }
 
+export interface MockAccount {
+  id: string;
+  tenantId: string;
+  name: string;
+  industry: string | null;
+  size: string | null;
+  website: string | null;
+  address: string | null;
+  ownerId: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
 interface MockDatabase {
   tenants: Map<string, SessionTenant>;
   users: Map<string, MockUser>;
+  accounts: Map<string, MockAccount>;
   resetTokens: Map<string, ResetToken>;
   sessions: Map<string, string>;
   auditLogs: MockAuditEntry[];
@@ -124,9 +138,89 @@ function seed(): MockDatabase {
     seedUser(VIEWER_ID, "finance@calderfreight.test", "Dana Osei", "read_only", 31),
   ]);
 
+  const now = Date.now();
+  const accounts = new Map<string, MockAccount>([
+    [
+      "acc-1",
+      {
+        id: "acc-1",
+        tenantId: TENANT_ID,
+        name: "Acme Logistics Corp",
+        industry: "Logistics & Supply Chain",
+        size: "500+",
+        website: "https://acmelogistics.example.com",
+        address: "100 Supply Chain Way, Chicago, IL 60601",
+        ownerId: ADMIN_ID,
+        createdAt: now - 30 * DAY,
+        updatedAt: now - 30 * DAY,
+      },
+    ],
+    [
+      "acc-2",
+      {
+        id: "acc-2",
+        tenantId: TENANT_ID,
+        name: "Apex Global Freight",
+        industry: "Freight Forwarding",
+        size: "201-500",
+        website: "https://apexglobal.example.com",
+        address: "45 Ocean Port Blvd, Seattle, WA 98101",
+        ownerId: REP_ID,
+        createdAt: now - 20 * DAY,
+        updatedAt: now - 20 * DAY,
+      },
+    ],
+    [
+      "acc-3",
+      {
+        id: "acc-3",
+        tenantId: TENANT_ID,
+        name: "Starlight Maritime",
+        industry: "Maritime Shipping",
+        size: "51-200",
+        website: "https://starlightmaritime.example.com",
+        address: "88 Harbor Drive, Miami, FL 33101",
+        ownerId: MANAGER_ID,
+        createdAt: now - 15 * DAY,
+        updatedAt: now - 15 * DAY,
+      },
+    ],
+    [
+      "acc-4",
+      {
+        id: "acc-4",
+        tenantId: TENANT_ID,
+        name: "Summit Retail Distribution",
+        industry: "Retail & E-commerce",
+        size: "500+",
+        website: "https://summitretail.example.com",
+        address: "500 Commerce Ave, Dallas, TX 75201",
+        ownerId: ADMIN_ID,
+        createdAt: now - 10 * DAY,
+        updatedAt: now - 10 * DAY,
+      },
+    ],
+    [
+      "acc-5",
+      {
+        id: "acc-5",
+        tenantId: TENANT_ID,
+        name: "Vantage Tech Solutions",
+        industry: "Technology & Software",
+        size: "11-50",
+        website: "https://vantagetech.example.com",
+        address: "12 Tech Park Loop, Austin, TX 78701",
+        ownerId: REP_ID,
+        createdAt: now - 5 * DAY,
+        updatedAt: now - 5 * DAY,
+      },
+    ],
+  ]);
+
   return {
     tenants,
     users,
+    accounts,
     resetTokens: new Map(),
     sessions: new Map(),
     auditLogs: [],
@@ -602,3 +696,155 @@ export function mockUpdateUser(
 
   return { kind: "ok", user };
 }
+
+// --- Mock Accounts CRUD ---
+
+export function mockListAccounts(
+  tenantId: string,
+  filters: { q?: string; industry?: string; ownerId?: string; limit?: number; offset?: number },
+) {
+  const limit = Math.min(filters.limit ?? 25, 100);
+  const offset = filters.offset ?? 0;
+
+  const matches = [...db.accounts.values()].filter((acc) => {
+    if (acc.tenantId !== tenantId) return false;
+    if (filters.q?.trim()) {
+      const q = filters.q.trim().toLowerCase();
+      const match =
+        acc.name.toLowerCase().includes(q) ||
+        (acc.industry && acc.industry.toLowerCase().includes(q)) ||
+        (acc.website && acc.website.toLowerCase().includes(q));
+      if (!match) return false;
+    }
+    if (filters.industry && acc.industry !== filters.industry) return false;
+    if (filters.ownerId && acc.ownerId !== filters.ownerId) return false;
+    return true;
+  });
+
+  matches.sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    items: matches.slice(offset, offset + limit),
+    total: matches.length,
+    limit,
+    offset,
+  };
+}
+
+export function mockGetAccount(tenantId: string, accountId: string): MockAccount | null {
+  const acc = db.accounts.get(accountId);
+  if (!acc || acc.tenantId !== tenantId) return null;
+  return acc;
+}
+
+export function mockCreateAccount(
+  actorId: string,
+  payload: { name: string; industry?: string | null; size?: string | null; website?: string | null; address?: string | null; ownerId?: string | null },
+) {
+  const actor = db.users.get(actorId);
+  if (!actor) return { kind: "forbidden" as const, detail: "You do not have access." };
+
+  const existing = [...db.accounts.values()].find(
+    (a) => a.tenantId === actor.tenantId && a.name.toLowerCase() === payload.name.trim().toLowerCase(),
+  );
+  if (existing) {
+    return { kind: "conflict" as const, detail: `An account named '${payload.name}' already exists.` };
+  }
+
+  const id = `acc-${randomUUID()}`;
+  const now = Date.now();
+  const account: MockAccount = {
+    id,
+    tenantId: actor.tenantId,
+    name: payload.name.trim(),
+    industry: payload.industry?.trim() || null,
+    size: payload.size?.trim() || null,
+    website: payload.website?.trim() || null,
+    address: payload.address?.trim() || null,
+    ownerId: payload.ownerId || actorId,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  db.accounts.set(id, account);
+
+  record({
+    tenantId: actor.tenantId,
+    actor,
+    action: "account.created",
+    entityType: "account",
+    entityId: id,
+    summary: `Created account '${account.name}'`,
+    changes: {
+      name: { before: null, after: account.name },
+      industry: { before: null, after: account.industry },
+    },
+  });
+
+  return { kind: "ok" as const, account };
+}
+
+export function mockUpdateAccount(
+  actorId: string,
+  accountId: string,
+  payload: { name?: string | null; industry?: string | null; size?: string | null; website?: string | null; address?: string | null; ownerId?: string | null },
+) {
+  const actor = db.users.get(actorId);
+  if (!actor) return { kind: "forbidden" as const, detail: "You do not have access." };
+
+  const account = mockGetAccount(actor.tenantId, accountId);
+  if (!account) return { kind: "forbidden" as const, detail: "You do not have access to this account." };
+
+  if (payload.name && payload.name.trim().toLowerCase() !== account.name.toLowerCase()) {
+    const existing = [...db.accounts.values()].find(
+      (a) => a.tenantId === actor.tenantId && a.name.toLowerCase() === payload.name!.trim().toLowerCase() && a.id !== account.id,
+    );
+    if (existing) {
+      return { kind: "conflict" as const, detail: `An account named '${payload.name}' already exists.` };
+    }
+    account.name = payload.name.trim();
+  }
+
+  if (payload.industry !== undefined) account.industry = payload.industry;
+  if (payload.size !== undefined) account.size = payload.size;
+  if (payload.website !== undefined) account.website = payload.website;
+  if (payload.address !== undefined) account.address = payload.address;
+  if (payload.ownerId !== undefined) account.ownerId = payload.ownerId;
+  account.updatedAt = Date.now();
+
+  record({
+    tenantId: actor.tenantId,
+    actor,
+    action: "account.updated",
+    entityType: "account",
+    entityId: account.id,
+    summary: `Updated account '${account.name}'`,
+    changes: null,
+  });
+
+  return { kind: "ok" as const, account };
+}
+
+export function mockDeleteAccount(actorId: string, accountId: string) {
+  const actor = db.users.get(actorId);
+  if (!actor) return { kind: "forbidden" as const, detail: "You do not have access." };
+
+  const account = mockGetAccount(actor.tenantId, accountId);
+  if (!account) return { kind: "forbidden" as const, detail: "You do not have access to this account." };
+
+  const name = account.name;
+  db.accounts.delete(accountId);
+
+  record({
+    tenantId: actor.tenantId,
+    actor,
+    action: "account.deleted",
+    entityType: "account",
+    entityId: accountId,
+    summary: `Deleted account '${name}'`,
+    changes: null,
+  });
+
+  return { kind: "ok" as const };
+}
+

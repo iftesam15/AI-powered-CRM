@@ -27,6 +27,7 @@ The API implements the multi-tenant auth and session contract defined in
 │   └── api/                  # FastAPI, SQLAlchemy 2 async, Alembic
 ├── packages/                 # shared code, when there is any
 ├── scripts/api.mjs           # runs the API venv from anywhere, any platform
+├── TERMINAL_START_COMMANDS.md # Quick reference for setup, dev, test & docker commands
 ├── docs/                     # SRS, architecture, structures, sprint plan
 ├── docker-compose.yml        # postgres, redis, api
 ├── Makefile                  # mirrors the npm scripts below

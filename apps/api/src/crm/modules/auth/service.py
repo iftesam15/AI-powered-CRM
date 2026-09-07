@@ -303,16 +303,12 @@ class AuthService:
             raise InvalidTokenError("This reset link is not valid.")
 
         if record.used_at is not None:
-            raise TokenAlreadyUsedError(
-                "This reset link has already been used. Request a new one."
-            )
+            raise TokenAlreadyUsedError("This reset link has already been used. Request a new one.")
 
         now = datetime.now(UTC)
         record_expires_utc = ensure_utc(record.expires_at)
         if record_expires_utc is None or record_expires_utc < now:
-            raise TokenExpiredError(
-                "This reset link has expired. Request a new one."
-            )
+            raise TokenExpiredError("This reset link has expired. Request a new one.")
 
         user = await self.user_repo.get_by_id(record.user_id)
         if not user or not user.is_active:

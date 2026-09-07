@@ -39,9 +39,7 @@ async def login(
 ) -> TokenResponse:
     """Authenticate with email and password to receive access and refresh tokens."""
     service = AuthService(session)
-    access_token, refresh_token = await service.login(
-        payload.email, payload.password, context
-    )
+    access_token, refresh_token = await service.login(payload.email, payload.password, context)
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -81,9 +79,7 @@ async def logout(
 ) -> Response:
     """Revoke the current session and refresh token."""
     service = AuthService(session)
-    await service.logout(
-        current_user.id, payload.refresh_token if payload else None, context
-    )
+    await service.logout(current_user.id, payload.refresh_token if payload else None, context)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

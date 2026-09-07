@@ -75,9 +75,7 @@ async def test_rep_cannot_read_or_write_users(
 
 
 @pytest.mark.asyncio
-async def test_readonly_cannot_read_users(
-    client: AsyncClient, readonly_token_a: str
-) -> None:
+async def test_readonly_cannot_read_users(client: AsyncClient, readonly_token_a: str) -> None:
     assert (await client.get(USERS, headers=auth(readonly_token_a))).status_code == 403
 
 
@@ -174,9 +172,7 @@ async def test_same_email_in_another_tenant_is_allowed(
 
 
 @pytest.mark.asyncio
-async def test_short_password_is_rejected(
-    client: AsyncClient, admin_token_a: str
-) -> None:
+async def test_short_password_is_rejected(client: AsyncClient, admin_token_a: str) -> None:
     response = await client.post(
         USERS,
         headers=auth(admin_token_a),
@@ -418,9 +414,7 @@ async def test_reading_another_tenants_user_is_forbidden(
 ) -> None:
     """403, not 404: a different answer for "exists elsewhere" versus "does not
     exist" would let a caller enumerate ids across tenants."""
-    response = await client.get(
-        f"{USERS}/{admin_user_b.id}", headers=auth(admin_token_a)
-    )
+    response = await client.get(f"{USERS}/{admin_user_b.id}", headers=auth(admin_token_a))
     assert response.status_code == 403
 
 
@@ -458,14 +452,10 @@ async def test_search_filter_and_pagination(
     manager_user_a: User,
     readonly_user_a: User,
 ) -> None:
-    by_name = await client.get(
-        USERS, headers=auth(admin_token_a), params={"q": "Manager"}
-    )
+    by_name = await client.get(USERS, headers=auth(admin_token_a), params={"q": "Manager"})
     assert [item["email"] for item in by_name.json()["items"]] == ["manager@alpha.test"]
 
-    by_role = await client.get(
-        USERS, headers=auth(admin_token_a), params={"role": "sales_rep"}
-    )
+    by_role = await client.get(USERS, headers=auth(admin_token_a), params={"role": "sales_rep"})
     assert by_role.json()["total"] == 1
 
     first_page = await client.get(
@@ -496,17 +486,13 @@ async def test_unknown_sort_column_falls_back_instead_of_failing(
 
 
 @pytest.mark.asyncio
-async def test_limit_above_the_maximum_is_rejected(
-    client: AsyncClient, admin_token_a: str
-) -> None:
+async def test_limit_above_the_maximum_is_rejected(client: AsyncClient, admin_token_a: str) -> None:
     response = await client.get(USERS, headers=auth(admin_token_a), params={"limit": 500})
     assert response.status_code == 422
 
 
 @pytest.mark.asyncio
-async def test_role_catalogue_lists_permissions(
-    client: AsyncClient, admin_token_a: str
-) -> None:
+async def test_role_catalogue_lists_permissions(client: AsyncClient, admin_token_a: str) -> None:
     response = await client.get(f"{USERS}/roles", headers=auth(admin_token_a))
     assert response.status_code == 200
 

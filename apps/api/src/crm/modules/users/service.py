@@ -100,9 +100,7 @@ class UserService:
         """Create a user directly. Used by the seed and bootstrap scripts."""
         existing = await self.repo.get_by_email_and_tenant(data.email, data.tenant_id)
         if existing:
-            raise ConflictError(
-                f"User with email '{data.email}' already exists in this tenant."
-            )
+            raise ConflictError(f"User with email '{data.email}' already exists in this tenant.")
 
         user = User(
             tenant_id=data.tenant_id,
@@ -142,10 +140,7 @@ class UserService:
             action=AuditAction.USER_CREATED,
             entity_type=AuditEntity.USER,
             entity_id=user.id,
-            summary=(
-                f"Created {user.full_name} ({user.email}) "
-                f"as {role_label(user.role)}"
-            ),
+            summary=(f"Created {user.full_name} ({user.email}) as {role_label(user.role)}"),
             changes={
                 "email": {"before": None, "after": user.email},
                 "full_name": {"before": None, "after": user.full_name},
@@ -232,8 +227,7 @@ class UserService:
         """
         if actor.id == target.id and patch.get("is_active") is False:
             raise ConflictError(
-                "You cannot deactivate your own account. "
-                "Ask another administrator to do it."
+                "You cannot deactivate your own account. Ask another administrator to do it."
             )
 
     async def _guard_last_admin(self, target: User, patch: dict[str, Any]) -> None:
@@ -252,9 +246,7 @@ class UserService:
         if not losing_admin:
             return
 
-        remaining = await self.repo.count_active_with_role(
-            target.tenant_id, str(Role.ADMIN)
-        )
+        remaining = await self.repo.count_active_with_role(target.tenant_id, str(Role.ADMIN))
         if remaining <= 1:
             raise ConflictError(
                 "This is the last active administrator. "
@@ -284,9 +276,7 @@ class UserService:
 
         if "is_active" in changes:
             activated = changes["is_active"]["after"] is True
-            action = (
-                AuditAction.USER_ACTIVATED if activated else AuditAction.USER_DEACTIVATED
-            )
+            action = AuditAction.USER_ACTIVATED if activated else AuditAction.USER_DEACTIVATED
             verb = "Activated" if activated else "Deactivated"
             entries.append((str(action), f"{verb} {who}"))
 

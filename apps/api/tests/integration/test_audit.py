@@ -40,9 +40,7 @@ async def test_only_admin_may_read_the_audit_log(
 
 
 @pytest.mark.asyncio
-async def test_the_trail_is_append_only(
-    client: AsyncClient, admin_token_a: str
-) -> None:
+async def test_the_trail_is_append_only(client: AsyncClient, admin_token_a: str) -> None:
     """There is no write route. Nothing can forge or erase an entry over HTTP."""
     for method in (client.post, client.patch, client.put, client.delete):
         response = await method(AUDIT, headers=auth(admin_token_a))
@@ -202,12 +200,8 @@ async def test_a_login_attempt_for_an_unknown_address_records_nothing(
 async def test_password_reset_is_recorded_end_to_end(
     client: AsyncClient, admin_token_a: str, rep_user_a: User
 ) -> None:
-    await client.post(
-        "/api/v1/auth/forgot-password", json={"email": rep_user_a.email}
-    )
-    assert AuditAction.PASSWORD_RESET_REQUESTED in await actions_in(
-        client, admin_token_a
-    )
+    await client.post("/api/v1/auth/forgot-password", json={"email": rep_user_a.email})
+    assert AuditAction.PASSWORD_RESET_REQUESTED in await actions_in(client, admin_token_a)
 
 
 # --- isolation, filtering, paging ---
@@ -281,12 +275,8 @@ async def test_entries_are_newest_first_and_page_without_overlap(
             },
         )
 
-    first = await client.get(
-        AUDIT, headers=auth(admin_token_a), params={"limit": 2, "offset": 0}
-    )
-    second = await client.get(
-        AUDIT, headers=auth(admin_token_a), params={"limit": 2, "offset": 2}
-    )
+    first = await client.get(AUDIT, headers=auth(admin_token_a), params={"limit": 2, "offset": 0})
+    second = await client.get(AUDIT, headers=auth(admin_token_a), params={"limit": 2, "offset": 2})
 
     assert first.json()["total"] == 5
     assert "Hire 4" in first.json()["items"][0]["summary"]

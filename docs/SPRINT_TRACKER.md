@@ -7,9 +7,9 @@ the start and end of every sprint.
 
 | Field | Value |
 |---|---|
-| Current sprint | **2 — Users, RBAC & Audit spine** |
+| Current sprint | **3 — Accounts (E2E CRUD)** |
 | Status | Done |
-| Last updated | 2026-09-05 |
+| Last updated | 2026-09-07 |
 | Milestone next up | ★ P0 complete after sprint 5 |
 
 ---
@@ -21,7 +21,7 @@ the start and end of every sprint.
 | 0 | Scaffold & "Hello CRM" | ✅ Done | 2026-09-03 | 2026-09-03 | API + web + Alembic |
 | 1 | Tenants + Authentication | ✅ Done | 2026-09-04 | 2026-09-04 | API + web + tests |
 | 2 | Users, RBAC & Audit spine | ✅ Done | 2026-09-05 | 2026-09-05 | API + web + tests |
-| 3 | Accounts (E2E CRUD) | ⬜ Not started | — | — | — |
+| 3 | Accounts (E2E CRUD) | ✅ Done | 2026-09-07 | 2026-09-07 | API + web + tests |
 | 4 | Contacts (+ account links) | ⬜ Not started | — | — | — |
 | 5 | Activities & Tasks (timeline) | ⬜ Not started | — | — | — |
 | 6 | Leads + conversion | ⬜ Not started | — | — | — |
@@ -113,22 +113,25 @@ re-derived from the token on every single request by
 
 ---
 
-## Sprint 3 — Accounts ⬜ (next)
+## Sprint 3 — Accounts ✅
 
 **Goal:** Full account list → create → detail → edit.
 
-- [ ] OpenAPI shows account endpoints
-- [ ] List pagination works with >1 page of seed data
-- [ ] Tenant isolation test: A's account id → 403 for B
+- [x] OpenAPI shows account endpoints
+- [x] List pagination works with >1 page of seed data
+- [x] Tenant isolation test: A's account id → 403 for B
 
-**Ready before starting**
+**Shipped**
 
-- `core/pagination.py` and the `Page` envelope exist (sprint 2) — reuse, do not
-  re-invent.
-- `BaseTenantRepository` is the module template; `accounts/router.py` is
-  currently a stub returning an empty list and should be replaced, not extended.
-- The `users` module is the reference implementation of router → service →
-  repository → schemas for this codebase.
+| Layer | What |
+|---|---|
+| Backend | `accounts` module CRUD: model, migration `0004_accounts_table`, schemas, repository, service, router |
+| Backend | Audit hooks for `account.created`, `account.updated`, `account.deleted` |
+| Scripts | `scripts/seed_data.py` seeds accounts under demo tenant |
+| Frontend | `/accounts` data table, search/filter, pagination, create/edit modals, `/accounts/[id]` detail view |
+| Frontend | Mock store and handlers for `NEXT_PUBLIC_USE_MOCK_API=true` |
+| Navigation | `CURRENT_SPRINT = 3` unlocks sidebar navigation item |
+| Tests | `tests/integration/test_accounts.py` — CRUD, RBAC, pagination, tenant isolation |
 
 ---
 

@@ -81,9 +81,7 @@ class UserRepository:
 
         if search:
             needle = f"%{search.strip()}%"
-            conditions.append(
-                or_(User.full_name.ilike(needle), User.email.ilike(needle))
-            )
+            conditions.append(or_(User.full_name.ilike(needle), User.email.ilike(needle)))
         if role:
             conditions.append(User.role == role)
         if is_active is not None:

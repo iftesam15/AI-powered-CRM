@@ -5,12 +5,18 @@ import { NextResponse } from "next/server";
 import { PERMISSIONS, permissionsForRole, ROLE_LABELS } from "@/lib/permissions";
 import {
   isLocked,
+  mockCreateAccount,
   mockCreateUser,
+  mockDeleteAccount,
+  mockGetAccount,
   mockGetUser,
+  mockListAccounts,
   mockListAudit,
   mockListUsers,
+  mockUpdateAccount,
   mockUpdateUser,
   mockUserForToken,
+  type MockAccount,
   type MockAuditEntry,
 } from "@/server/mock/store";
 import type { Role } from "@/types/session";
@@ -290,5 +296,110 @@ export async function handleMockApiRequest(
   if (module === "audit") {
     return handleAudit(request.method, segments, search, actor);
   }
+  if (module === "accounts") {
+    return handleAccounts(request.method, segments, search, body, actor);
+  }
+  return null;
+}
+
+function serialiseAccount(acc: MockAccount) {
+  return {
+    id: acc.id,
+    tenant_id: acc.tenantId,
+    name: acc.name,
+    industry: acc.industry,
+    size: acc.size,
+    website: acc.website,
+    address: acc.address,
+    owner_id: acc.ownerId,
+    created_at: new Date(acc.createdAt).toISOString(),
+    updated_at: new Date(acc.updatedAt).toISOString(),
+  };
+}
+
+function handleAccounts(
+  method: string,
+  segments: string[],
+  search: URLSearchParams,
+  body: unknown,
+  actor: MockUserRecord,
+): NextResponse | null {
+  const [accountId] = segments;
+
+  if (!accountId) {
+    if (method === "GET") {
+      if (!grants(actor, PERMISSIONS.accountsRead)) return forbidden();
+      const bounds = paging(search);
+      if (!bounds) return invalid({ limit: ["Input should be between 1 and 100"] });
+
+      const res = mockListAccounts(actor.tenantId, {
+        q: search.get("q") ?? undefined,
+        industry: search.get("industry") ?? undefined,
+        ownerId: search.get("owner_id") ?? undefined,
+        limit: bounds.limit,
+        offset: bounds.offset,
+      });
+      return page(res.items.map(serialiseAccount), res.total, res.limit, res.offset);
+    }
+
+    if (method === "POST") {
+      if (!grants(actor, PERMISSIONS.accountsWrite)) return forbidden();
+      if (!body || typeof body !== "object") return invalid({ body: ["Required"] });
+      const b = body as Record<string, unknown>;
+      if (!b.name || typeof b.name !== "string" || !b.name.trim()) {
+        return invalid({ name: ["Account name is required"] });
+      }
+
+      const res = mockCreateAccount(actor.id, {
+        name: b.name,
+        industry: typeof b.industry === "string" ? b.industry : null,
+        size: typeof b.size === "string" ? b.size : null,
+        website: typeof b.website === "string" ? b.website : null,
+        address: typeof b.address === "string" ? b.address : null,
+        ownerId: typeof b.owner_id === "string" ? b.owner_id : null,
+      });
+
+      if (res.kind === "forbidden") return forbidden();
+      if (res.kind === "conflict") return error(409, res.detail, "conflict");
+      return NextResponse.json(serialiseAccount(res.account), { status: 201 });
+    }
+
+    return null;
+  }
+
+  // Account detail routes: /accounts/:id
+  if (method === "GET") {
+    if (!grants(actor, PERMISSIONS.accountsRead)) return forbidden();
+    const acc = mockGetAccount(actor.tenantId, accountId);
+    if (!acc) return forbidden();
+    return NextResponse.json(serialiseAccount(acc));
+  }
+
+  if (method === "PATCH") {
+    if (!grants(actor, PERMISSIONS.accountsWrite)) return forbidden();
+    if (!body || typeof body !== "object") return invalid({ body: ["Required"] });
+    const b = body as Record<string, unknown>;
+
+    const res = mockUpdateAccount(actor.id, accountId, {
+      name: typeof b.name === "string" ? b.name : undefined,
+      industry: typeof b.industry === "string" ? b.industry : b.industry === null ? null : undefined,
+      size: typeof b.size === "string" ? b.size : b.size === null ? null : undefined,
+      website: typeof b.website === "string" ? b.website : b.website === null ? null : undefined,
+      address: typeof b.address === "string" ? b.address : b.address === null ? null : undefined,
+      ownerId: typeof b.owner_id === "string" ? b.owner_id : b.owner_id === null ? null : undefined,
+    });
+
+    if (res.kind === "forbidden") return forbidden();
+    if (res.kind === "conflict") return error(409, res.detail, "conflict");
+    return NextResponse.json(serialiseAccount(res.account));
+  }
+
+  if (method === "DELETE") {
+    if (!grants(actor, PERMISSIONS.accountsWrite)) return forbidden();
+    const res = mockDeleteAccount(actor.id, accountId);
+    if (res.kind === "forbidden") return forbidden();
+    return new NextResponse(null, { status: 204 });
+  }
+
   return null;
 }

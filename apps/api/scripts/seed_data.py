@@ -84,6 +84,67 @@ async def seed() -> None:
             else:
                 print(f"User '{user_data['email']}' already exists.")
 
+        # 3. Check or create demo accounts (Sprint 3)
+        from crm.modules.accounts.models import Account
+        from crm.modules.accounts.repository import AccountRepository
+
+        account_repo = AccountRepository(session)
+        admin_user = await user_repo.get_by_email_and_tenant("admin@calderfreight.test", tenant.id)
+        admin_id = admin_user.id if admin_user else None
+
+        accounts_to_seed = [
+            {
+                "name": "Acme Logistics Corp",
+                "industry": "Logistics & Supply Chain",
+                "size": "500+",
+                "website": "https://acmelogistics.example.com",
+                "address": "100 Supply Chain Way, Chicago, IL 60601",
+            },
+            {
+                "name": "Apex Global Freight",
+                "industry": "Freight Forwarding",
+                "size": "201-500",
+                "website": "https://apexglobal.example.com",
+                "address": "45 Ocean Port Blvd, Seattle, WA 98101",
+            },
+            {
+                "name": "Starlight Maritime",
+                "industry": "Maritime Shipping",
+                "size": "51-200",
+                "website": "https://starlightmaritime.example.com",
+                "address": "88 Harbor Drive, Miami, FL 33101",
+            },
+            {
+                "name": "Summit Retail Distribution",
+                "industry": "Retail & E-commerce",
+                "size": "500+",
+                "website": "https://summitretail.example.com",
+                "address": "500 Commerce Ave, Dallas, TX 75201",
+            },
+            {
+                "name": "Vantage Tech Solutions",
+                "industry": "Technology & Software",
+                "size": "11-50",
+                "website": "https://vantagetech.example.com",
+                "address": "12 Tech Park Loop, Austin, TX 78701",
+            },
+        ]
+
+        for acc_data in accounts_to_seed:
+            existing_acc = await account_repo.get_by_name(tenant.id, acc_data["name"])
+            if not existing_acc:
+                print(f"Creating account '{acc_data['name']}'...")
+                new_acc = Account(
+                    tenant_id=tenant.id,
+                    name=acc_data["name"],
+                    industry=acc_data["industry"],
+                    size=acc_data["size"],
+                    website=acc_data["website"],
+                    address=acc_data["address"],
+                    owner_id=admin_id,
+                )
+                await account_repo.create(new_acc)
+
         await session.commit()
         print("Database seeding completed successfully.")
         await engine.dispose()
