@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Building2,
+  CalendarPlus,
+  ClipboardPlus,
   Contact as ContactIcon,
   Mail,
   Pencil,
@@ -12,15 +14,20 @@ import {
   Waypoints,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { LogActivityModal } from "@/components/activities/LogActivityModal";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PermissionGate } from "@/components/shared/permission-gate";
+import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
+import { ActivityTimeline } from "@/components/timeline/ActivityTimeline";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { fetchTimeline } from "@/features/activities/api";
+import type { TimelineItem } from "@/features/activities/types";
 import { contactDetailQueryOptions } from "@/features/contacts/api/queries";
 import { EditContactDialog } from "@/features/contacts/components/edit-contact-dialog";
 import type { CrmContact } from "@/features/contacts/types";
@@ -37,6 +44,27 @@ export function ContactDetailView({ id }: ContactDetailViewProps) {
   );
 
   const [editing, setEditing] = useState<CrmContact | null>(null);
+  const [timeline, setTimeline] = useState<TimelineItem[]>([]);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [isLogActivityOpen, setIsLogActivityOpen] = useState(false);
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+
+  async function loadTimeline() {
+    if (!id) return;
+    setTimelineLoading(true);
+    try {
+      const items = await fetchTimeline("contact", id);
+      setTimeline(items);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setTimelineLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadTimeline();
+  }, [id]);
 
   if (isLoading) {
     return (
@@ -189,16 +217,34 @@ export function ContactDetailView({ id }: ContactDetailViewProps) {
       </div>
 
       {/* Tabs section */}
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs defaultValue="activities" className="w-full">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="activities">
-            Activities & Tasks
-            <Badge variant="outline" className="ml-2 text-[10px]">
-              Sprint 5
-            </Badge>
+            Activity Timeline
           </TabsTrigger>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="activities" className="pt-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base">Contact Activity Timeline</CardTitle>
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={() => setIsLogActivityOpen(true)}>
+                  <CalendarPlus className="mr-1.5 h-4 w-4" />
+                  Log Activity
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setIsCreateTaskOpen(true)}>
+                  <ClipboardPlus className="mr-1.5 h-4 w-4" />
+                  Create Task
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ActivityTimeline items={timeline} loading={timelineLoading} />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="overview" className="pt-4">
           <Card>
@@ -237,18 +283,6 @@ export function ContactDetailView({ id }: ContactDetailViewProps) {
             </CardContent>
           </Card>
         </TabsContent>
-
-        <TabsContent value="activities" className="pt-4">
-          <Card>
-            <CardContent className="p-0">
-              <EmptyState
-                icon={Waypoints}
-                title="Activity timeline coming in Sprint 5"
-                description="Call logs, emails, meetings and scheduled tasks associated with this contact will appear here in Sprint 5."
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Edit Modal */}
@@ -258,6 +292,28 @@ export function ContactDetailView({ id }: ContactDetailViewProps) {
         onOpenChange={(open) => {
           if (!open) setEditing(null);
         }}
+      />
+
+      <LogActivityModal
+        isOpen={isLogActivityOpen}
+        onClose={() => setIsLogActivityOpen(false)}
+        onSuccess={() => loadTimeline()}
+        entityType="contact"
+        entityId={contact.id}
+        entityName={`${contact.first_name} ${contact.last_name}`}
+        accountId={contact.account_id || undefined}
+        contactId={contact.id}
+      />
+
+      <CreateTaskModal
+        isOpen={isCreateTaskOpen}
+        onClose={() => setIsCreateTaskOpen(false)}
+        onSuccess={() => loadTimeline()}
+        entityType="contact"
+        entityId={contact.id}
+        entityName={`${contact.first_name} ${contact.last_name}`}
+        accountId={contact.account_id || undefined}
+        contactId={contact.id}
       />
     </div>
   );

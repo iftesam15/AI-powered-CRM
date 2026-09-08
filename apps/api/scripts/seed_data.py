@@ -3,6 +3,11 @@
 import asyncio
 
 from crm.core.database import SessionFactory, engine
+from crm.modules.accounts.models import Account
+from crm.modules.activities.models import Activity
+from crm.modules.contacts.models import Contact
+from crm.modules.leads.models import Lead
+from crm.modules.tasks.models import Task
 from crm.modules.tenants.models import Tenant
 from crm.modules.tenants.repository import TenantRepository
 from crm.modules.tenants.schemas import TenantCreate
@@ -195,6 +200,131 @@ async def seed() -> None:
                     owner_id=admin_id,
                 )
                 await contact_repo.create(new_c)
+
+        # 5. Check or create demo activities & tasks (Sprint 5)
+        from datetime import datetime, timedelta, timezone
+        from crm.modules.activities.models import Activity
+        from crm.modules.activities.repository import ActivityRepository
+        from crm.modules.tasks.models import Task
+        from crm.modules.tasks.repository import TaskRepository
+
+        act_repo = ActivityRepository(session)
+        task_repo = TaskRepository(session)
+
+        jane_contact = (await contact_repo.find_by_email(tenant.id, "jane.doe@acmelogistics.example.com"))
+        jane = jane_contact[0] if jane_contact else None
+
+        if acme_acc:
+            existing_acts, _ = await act_repo.list_activities(tenant.id, entity_type="account", entity_id=acme_acc.id)
+            if not existing_acts:
+                print("Seeding initial activities for Acme Logistics Corp...")
+                now = datetime.now(timezone.utc)
+                await act_repo.create(
+                    tenant_id=tenant.id,
+                    activity_type="call",
+                    title="Introductory Discovery Call",
+                    description="Discussed Q4 logistics route capacity and software integration requirements.",
+                    performed_at=now - timedelta(days=5),
+                    entity_type="account",
+                    entity_id=acme_acc.id,
+                    account_id=acme_acc.id,
+                    contact_id=jane.id if jane else None,
+                    created_by_id=admin_id,
+                )
+                await act_repo.create(
+                    tenant_id=tenant.id,
+                    activity_type="meeting",
+                    title="Executive Strategy Briefing",
+                    description="Presented proposal for automated dispatch workflows.",
+                    performed_at=now - timedelta(days=2),
+                    entity_type="account",
+                    entity_id=acme_acc.id,
+                    account_id=acme_acc.id,
+                    contact_id=jane.id if jane else None,
+                    created_by_id=admin_id,
+                )
+
+            existing_tasks, _ = await task_repo.list_tasks(tenant.id, entity_type="account", entity_id=acme_acc.id)
+            if not existing_tasks:
+                print("Seeding initial tasks for Acme Logistics Corp...")
+                now = datetime.now(timezone.utc)
+                await task_repo.create(
+                    tenant_id=tenant.id,
+                    title="Send SLA & Pricing Proposal",
+                    description="Draft custom tier pricing model for 50+ fleet hubs.",
+                    status="pending",
+                    priority="high",
+                    due_date=now + timedelta(days=2),
+                    completed_at=None,
+                    entity_type="account",
+                    entity_id=acme_acc.id,
+                    account_id=acme_acc.id,
+                    contact_id=jane.id if jane else None,
+                    assigned_to_id=admin_id,
+                    created_by_id=admin_id,
+                )
+
+        # 6. Check or create demo leads (Sprint 6)
+        from crm.modules.leads.models import Lead
+        from crm.modules.leads.repository import LeadRepository
+
+        lead_repo = LeadRepository(session)
+        existing_leads = await lead_repo.list_leads(tenant.id, limit=10)
+        if not existing_leads:
+            print("Seeding initial leads for Calder Freightways...")
+            leads_to_seed = [
+                {
+                    "first_name": "Michael",
+                    "last_name": "Scott",
+                    "email": "mscott@dundermifflin.example.com",
+                    "phone": "+1 (555) 019-9482",
+                    "company_name": "Dunder Mifflin Freight",
+                    "title": "Regional Manager",
+                    "status": "qualified",
+                    "source": "website",
+                    "notes": "Expressing urgent interest in regional paper distribution logistics.",
+                    "owner_id": admin_id,
+                },
+                {
+                    "first_name": "Dwight",
+                    "last_name": "Schrute",
+                    "email": "dschrute@beetfarms.example.com",
+                    "phone": "+1 (555) 019-2834",
+                    "company_name": "Schrute Beet Logistics",
+                    "title": "Assistant to Regional Manager",
+                    "status": "new",
+                    "source": "referral",
+                    "notes": "Wants cold-chain beet transport options.",
+                    "owner_id": admin_id,
+                },
+                {
+                    "first_name": "Pam",
+                    "last_name": "Beesly",
+                    "email": "pbeesly@prattart.example.com",
+                    "phone": "+1 (555) 019-4829",
+                    "company_name": "Pratt Packaging",
+                    "title": "Office Administrator",
+                    "status": "contacted",
+                    "source": "outbound",
+                    "notes": "Followed up after trade show inquiry.",
+                    "owner_id": admin_id,
+                },
+            ]
+            for l_data in leads_to_seed:
+                lead_obj = Lead(
+                    tenant_id=tenant.id,
+                    first_name=l_data["first_name"],
+                    last_name=l_data["last_name"],
+                    email=l_data["email"],
+                    phone=l_data["phone"],
+                    company_name=l_data["company_name"],
+                    title=l_data["title"],
+                    status=l_data["status"],
+                    source=l_data["source"],
+                    notes=l_data["notes"],
+                    owner_id=l_data["owner_id"],
+                )
+                await lead_repo.create(lead_obj)
 
         await session.commit()
         print("Database seeding completed successfully.")

@@ -7,10 +7,10 @@ the start and end of every sprint.
 
 | Field | Value |
 |---|---|
-| Current sprint | **4 — Contacts (+ account links)** |
-| Status | Done |
-| Last updated | 2026-09-07 |
-| Milestone next up | ★ P0 complete after sprint 5 |
+| Current sprint | **6 — Leads + conversion** |
+| Status | ✅ Done |
+| Last updated | 2026-09-08 |
+| Milestone next up | ★ P1 complete after sprint 7 |
 
 ---
 
@@ -23,8 +23,8 @@ the start and end of every sprint.
 | 2 | Users, RBAC & Audit spine | ✅ Done | 2026-09-05 | 2026-09-05 | API + web + tests |
 | 3 | Accounts (E2E CRUD) | ✅ Done | 2026-09-07 | 2026-09-07 | API + web + tests |
 | 4 | Contacts (+ account links) | ✅ Done | 2026-09-07 | 2026-09-07 | API + web + tests |
-| 5 | Activities & Tasks (timeline) | ⬜ Not started | — | — | — |
-| 6 | Leads + conversion | ⬜ Not started | — | — | — |
+| 5 | Activities & Tasks (timeline) | ✅ Done | 2026-09-08 | 2026-09-08 | API + web + tests |
+| 6 | Leads + conversion | ✅ Done | 2026-09-08 | 2026-09-08 | API + web + tests |
 | 7 | Opportunities + Pipeline kanban | ⬜ Not started | — | — | — |
 | 8 | Search + CSV import/export | ⬜ Not started | — | — | — |
 | 9 | Dashboards & reports | ⬜ Not started | — | — | — |
@@ -159,7 +159,58 @@ re-derived from the token on every single request by
 
 ---
 
-## Sprints 5–10 ⬜
+## Sprint 5 — Activities & Tasks (timeline) ✅
+
+**Goal:** Log activities on account/contact; create tasks with due dates; chronological timeline on record detail.
+
+- [x] Timeline on Account and Contact detail pages
+- [x] Audit entries recorded on activity and task mutations
+- [x] System-wide `/activities` and `/tasks` management views
+
+**Shipped**
+
+| Layer | What |
+|---|---|
+| Backend | `activities` module: models, schemas, repository, service, router (`/activities`, `/activities/timeline`) |
+| Backend | `tasks` module: models, schemas, repository, service, router (`/tasks`) |
+| Migration | `0006_activities_and_tasks.py` creating `activities` and `tasks` tables with tenant indexes |
+| Audit | Audit hooks for `activity.created`, `activity.deleted`, `task.created`, `task.updated`, `task.deleted` |
+| Scripts | `scripts/seed_data.py` seeds activities and tasks linked to demo accounts & contacts |
+| Frontend | `/activities` page, `/tasks` page with filters and inline status toggle |
+| Frontend | Shared `ActivityTimeline`, `LogActivityModal`, and `CreateTaskModal` components |
+| Frontend | Account & Contact detail views updated with interactive Activity Timeline tab |
+| Frontend | Mock store and handlers for `NEXT_PUBLIC_USE_MOCK_API=true` |
+| Navigation | `CURRENT_SPRINT = 5` unlocks Activities and Tasks navigation items |
+| Tests | `tests/integration/test_activities.py`, `tests/integration/test_tasks.py` — CRUD, RBAC, tenant isolation, timeline order |
+
+---
+
+## Sprint 6 — Leads + Conversion ✅
+
+**Goal:** Capture leads; change status; convert qualified lead → contact + optional account in a single DB transaction.
+
+- [x] Conversion is transactional (all-or-nothing single DB transaction)
+- [x] Converted lead locked from active edits and re-conversion
+- [x] Converted lead history retained with links to created records
+- [x] Double-convert rejected with clear error
+
+**Shipped**
+
+| Layer | What |
+|---|---|
+| Backend | `leads` module: model, migration `0007_leads_table`, schemas, repository, service, router (`/leads`, `/leads/{id}/convert`) |
+| Migration | `0007_leads_table.py` creating `leads` table with indexes and foreign keys |
+| Audit | Audit hooks for `lead.created`, `lead.updated`, `lead.deleted`, `lead.converted` |
+| Scripts | `scripts/seed_data.py` seeds initial leads under demo tenant |
+| Frontend | `/leads` data table with status filtering tabs, `/leads/[id]` detail view |
+| Frontend | `CreateLeadDialog`, `EditLeadDialog`, `ConvertLeadDialog`, `LeadStatusBadge` components |
+| Frontend | Mock store and handlers for `NEXT_PUBLIC_USE_MOCK_API=true` |
+| Navigation | `CURRENT_SPRINT = 6` unlocks Leads navigation item |
+| Tests | `tests/integration/test_leads.py` — CRUD, RBAC, tenant isolation, single-transaction conversion, double-conversion guard, immutability check |
+
+---
+
+## Sprints 7–10 ⬜
 
 Not started. Scope, learning goals and DoD live in
 [CRM_SPRINT_PLAN.md](./CRM_SPRINT_PLAN.md); this file gets a section per sprint

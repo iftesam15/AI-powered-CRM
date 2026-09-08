@@ -6,21 +6,35 @@ import { PERMISSIONS, permissionsForRole, ROLE_LABELS } from "@/lib/permissions"
 import {
   isLocked,
   mockCheckDuplicateContact,
+  mockConvertLead,
   mockCreateAccount,
+  mockCreateActivity,
   mockCreateContact,
+  mockCreateLead,
+  mockCreateTask,
   mockCreateUser,
   mockDeleteAccount,
+  mockDeleteActivity,
   mockDeleteContact,
+  mockDeleteLead,
+  mockDeleteTask,
   mockGetAccount,
   mockGetAccountContacts,
   mockGetContact,
+  mockGetLead,
+  mockGetTimeline,
   mockGetUser,
   mockListAccounts,
+  mockListActivities,
   mockListAudit,
   mockListContacts,
+  mockListLeads,
+  mockListTasks,
   mockListUsers,
   mockUpdateAccount,
   mockUpdateContact,
+  mockUpdateLead,
+  mockUpdateTask,
   mockUpdateUser,
   mockUserForToken,
   type MockAccount,
@@ -309,6 +323,15 @@ export async function handleMockApiRequest(
   if (module === "contacts") {
     return handleContacts(request.method, segments, search, body, actor);
   }
+  if (module === "leads") {
+    return handleLeads(request.method, segments, search, body, actor);
+  }
+  if (module === "activities") {
+    return handleActivities(request.method, segments, search, body, actor);
+  }
+  if (module === "tasks") {
+    return handleTasks(request.method, segments, search, body, actor);
+  }
   return null;
 }
 
@@ -525,4 +548,289 @@ function handleContacts(
 
   return null;
 }
+
+function handleActivities(
+  method: string,
+  segments: string[],
+  search: URLSearchParams,
+  body: unknown,
+  actor: MockUserRecord,
+): NextResponse | null {
+  const [activityId] = segments;
+
+  if (!activityId) {
+    if (method === "GET") {
+      if (!grants(actor, PERMISSIONS.activitiesRead)) return forbidden();
+      const bounds = paging(search);
+      if (!bounds) return invalid({ limit: ["Input should be between 1 and 100"] });
+
+      const res = mockListActivities(actor.tenantId, {
+        activity_type: search.get("activity_type") ?? undefined,
+        entity_type: search.get("entity_type") ?? undefined,
+        entity_id: search.get("entity_id") ?? undefined,
+        limit: bounds.limit,
+        offset: bounds.offset,
+      });
+      return page(res.items, res.total, res.limit, res.offset);
+    }
+
+    if (method === "POST") {
+      if (!grants(actor, PERMISSIONS.activitiesWrite)) return forbidden();
+      if (!body || typeof body !== "object") return invalid({ body: ["Required"] });
+      const b = body as Record<string, unknown>;
+
+      if (!b.activity_type || typeof b.activity_type !== "string") {
+        return invalid({ activity_type: ["Activity type is required"] });
+      }
+      if (!b.title || typeof b.title !== "string" || !b.title.trim()) {
+        return invalid({ title: ["Title is required"] });
+      }
+      if (!b.entity_type || typeof b.entity_type !== "string") {
+        return invalid({ entity_type: ["Entity type is required"] });
+      }
+      if (!b.entity_id || typeof b.entity_id !== "string") {
+        return invalid({ entity_id: ["Entity ID is required"] });
+      }
+
+      const res = mockCreateActivity(actor.id, {
+        activity_type: b.activity_type as any,
+        title: b.title,
+        description: typeof b.description === "string" ? b.description : null,
+        performed_at: typeof b.performed_at === "string" ? b.performed_at : null,
+        entity_type: b.entity_type as any,
+        entity_id: b.entity_id,
+        account_id: typeof b.account_id === "string" ? b.account_id : null,
+        contact_id: typeof b.contact_id === "string" ? b.contact_id : null,
+      });
+
+      if (res.kind === "forbidden") return forbidden();
+      return NextResponse.json(res.activity, { status: 201 });
+    }
+
+    return null;
+  }
+
+  if (activityId === "timeline" && method === "GET") {
+    if (!grants(actor, PERMISSIONS.activitiesRead)) return forbidden();
+    const entityType = search.get("entity_type");
+    const entityId = search.get("entity_id");
+    if (!entityType || !entityId) {
+      return invalid({ entity_type: ["entity_type and entity_id are required"] });
+    }
+    const items = mockGetTimeline(actor.tenantId, entityType, entityId);
+    return NextResponse.json(items);
+  }
+
+  if (method === "DELETE") {
+    if (!grants(actor, PERMISSIONS.activitiesWrite)) return forbidden();
+    const res = mockDeleteActivity(actor.id, activityId);
+    if (res.kind === "forbidden") return forbidden();
+    return new NextResponse(null, { status: 204 });
+  }
+
+  return null;
+}
+
+function handleTasks(
+  method: string,
+  segments: string[],
+  search: URLSearchParams,
+  body: unknown,
+  actor: MockUserRecord,
+): NextResponse | null {
+  const [taskId] = segments;
+
+  if (!taskId) {
+    if (method === "GET") {
+      if (!grants(actor, PERMISSIONS.tasksRead)) return forbidden();
+      const bounds = paging(search);
+      if (!bounds) return invalid({ limit: ["Input should be between 1 and 100"] });
+
+      const res = mockListTasks(actor.tenantId, {
+        status: search.get("status") ?? undefined,
+        priority: search.get("priority") ?? undefined,
+        assigned_to_id: search.get("assigned_to_id") ?? undefined,
+        entity_type: search.get("entity_type") ?? undefined,
+        entity_id: search.get("entity_id") ?? undefined,
+        limit: bounds.limit,
+        offset: bounds.offset,
+      });
+      return page(res.items, res.total, res.limit, res.offset);
+    }
+
+    if (method === "POST") {
+      if (!grants(actor, PERMISSIONS.tasksWrite)) return forbidden();
+      if (!body || typeof body !== "object") return invalid({ body: ["Required"] });
+      const b = body as Record<string, unknown>;
+
+      if (!b.title || typeof b.title !== "string" || !b.title.trim()) {
+        return invalid({ title: ["Title is required"] });
+      }
+
+      const res = mockCreateTask(actor.id, {
+        title: b.title,
+        description: typeof b.description === "string" ? b.description : null,
+        status: typeof b.status === "string" ? (b.status as any) : undefined,
+        priority: typeof b.priority === "string" ? (b.priority as any) : undefined,
+        due_date: typeof b.due_date === "string" ? b.due_date : null,
+        entity_type: typeof b.entity_type === "string" ? b.entity_type : null,
+        entity_id: typeof b.entity_id === "string" ? b.entity_id : null,
+        account_id: typeof b.account_id === "string" ? b.account_id : null,
+        contact_id: typeof b.contact_id === "string" ? b.contact_id : null,
+        assigned_to_id: typeof b.assigned_to_id === "string" ? b.assigned_to_id : null,
+      });
+
+      if (res.kind === "forbidden") return forbidden();
+      return NextResponse.json(res.task, { status: 201 });
+    }
+
+    return null;
+  }
+
+  if (method === "PATCH") {
+    if (!grants(actor, PERMISSIONS.tasksWrite)) return forbidden();
+    if (!body || typeof body !== "object") return invalid({ body: ["Required"] });
+    const b = body as Record<string, unknown>;
+
+    const res = mockUpdateTask(actor.id, taskId, {
+      title: typeof b.title === "string" ? b.title : undefined,
+      description: typeof b.description === "string" ? b.description : b.description === null ? null : undefined,
+      status: typeof b.status === "string" ? (b.status as any) : undefined,
+      priority: typeof b.priority === "string" ? (b.priority as any) : undefined,
+      due_date: typeof b.due_date === "string" ? b.due_date : b.due_date === null ? null : undefined,
+      assigned_to_id: typeof b.assigned_to_id === "string" ? b.assigned_to_id : b.assigned_to_id === null ? null : undefined,
+    });
+
+    if (res.kind === "forbidden") return forbidden();
+    return NextResponse.json(res.task);
+  }
+
+  if (method === "DELETE") {
+    if (!grants(actor, PERMISSIONS.tasksWrite)) return forbidden();
+    const res = mockDeleteTask(actor.id, taskId);
+    if (res.kind === "forbidden") return forbidden();
+    return new NextResponse(null, { status: 204 });
+  }
+
+  return null;
+}
+
+function handleLeads(
+  method: string,
+  segments: string[],
+  search: URLSearchParams,
+  body: unknown,
+  actor: MockUserRecord,
+): NextResponse | null {
+  const [leadId, action] = segments;
+
+  if (!leadId) {
+    if (method === "GET") {
+      if (!grants(actor, PERMISSIONS.leadsRead)) return forbidden();
+      const bounds = paging(search);
+      if (!bounds) return invalid({ limit: ["Input should be between 1 and 100"] });
+
+      const isConvertedParam = search.get("is_converted");
+      const res = mockListLeads(actor.tenantId, {
+        q: search.get("q"),
+        status: search.get("status"),
+        is_converted: isConvertedParam !== null ? isConvertedParam === "true" : undefined,
+        owner_id: search.get("owner_id"),
+        limit: bounds.limit,
+        offset: bounds.offset,
+      });
+
+      return page(res.items, res.total, res.limit, res.offset);
+    }
+
+    if (method === "POST") {
+      if (!grants(actor, PERMISSIONS.leadsWrite)) return forbidden();
+      if (!body || typeof body !== "object") return invalid({ body: ["Required"] });
+      const b = body as Record<string, unknown>;
+
+      if (!b.first_name || typeof b.first_name !== "string" || !b.first_name.trim()) {
+        return invalid({ first_name: ["First name is required"] });
+      }
+      if (!b.last_name || typeof b.last_name !== "string" || !b.last_name.trim()) {
+        return invalid({ last_name: ["Last name is required"] });
+      }
+
+      const res = mockCreateLead(actor.id, {
+        first_name: b.first_name,
+        last_name: b.last_name,
+        email: typeof b.email === "string" ? b.email : null,
+        phone: typeof b.phone === "string" ? b.phone : null,
+        company_name: typeof b.company_name === "string" ? b.company_name : null,
+        title: typeof b.title === "string" ? b.title : null,
+        status: typeof b.status === "string" ? b.status : "new",
+        source: typeof b.source === "string" ? b.source : null,
+        notes: typeof b.notes === "string" ? b.notes : null,
+        owner_id: typeof b.owner_id === "string" ? b.owner_id : null,
+      });
+
+      if (res.kind === "forbidden") return forbidden();
+      return NextResponse.json(res.lead, { status: 201 });
+    }
+
+    return null;
+  }
+
+  // Action endpoints on lead: /leads/[id]/convert
+  if (action === "convert") {
+    if (method === "POST") {
+      if (!grants(actor, PERMISSIONS.leadsWrite)) return forbidden();
+      const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
+
+      const res = mockConvertLead(actor.id, leadId, {
+        create_account: typeof b.create_account === "boolean" ? b.create_account : true,
+        account_id: typeof b.account_id === "string" ? b.account_id : null,
+        account_name: typeof b.account_name === "string" ? b.account_name : null,
+      });
+
+      if (res.kind === "forbidden") return forbidden();
+      if (res.kind === "invalid") return invalid({ lead_id: [res.detail] });
+      return NextResponse.json(res.result);
+    }
+    return null;
+  }
+
+  if (method === "GET") {
+    if (!grants(actor, PERMISSIONS.leadsRead)) return forbidden();
+    const lead = mockGetLead(actor.tenantId, leadId);
+    if (!lead) return error(403, "You do not have access to this lead.", "forbidden");
+    return NextResponse.json(lead);
+  }
+
+  if (method === "PATCH") {
+    if (!grants(actor, PERMISSIONS.leadsWrite)) return forbidden();
+    if (!body || typeof body !== "object") return invalid({ body: ["Required"] });
+    const b = body as Record<string, unknown>;
+
+    const res = mockUpdateLead(actor.id, leadId, {
+      first_name: typeof b.first_name === "string" ? b.first_name : undefined,
+      last_name: typeof b.last_name === "string" ? b.last_name : undefined,
+      email: typeof b.email === "string" ? b.email : b.email === null ? null : undefined,
+      phone: typeof b.phone === "string" ? b.phone : b.phone === null ? null : undefined,
+      company_name: typeof b.company_name === "string" ? b.company_name : b.company_name === null ? null : undefined,
+      title: typeof b.title === "string" ? b.title : b.title === null ? null : undefined,
+      status: typeof b.status === "string" ? b.status : undefined,
+      source: typeof b.source === "string" ? b.source : b.source === null ? null : undefined,
+      notes: typeof b.notes === "string" ? b.notes : b.notes === null ? null : undefined,
+      owner_id: typeof b.owner_id === "string" ? b.owner_id : b.owner_id === null ? null : undefined,
+    });
+
+    if (res.kind === "forbidden") return forbidden();
+    return NextResponse.json(res.lead);
+  }
+
+  if (method === "DELETE") {
+    if (!grants(actor, PERMISSIONS.leadsWrite)) return forbidden();
+    const res = mockDeleteLead(actor.id, leadId);
+    if (res.kind === "forbidden") return forbidden();
+    return new NextResponse(null, { status: 204 });
+  }
+
+  return null;
+}
+
 

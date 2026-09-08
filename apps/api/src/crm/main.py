@@ -19,9 +19,12 @@ from crm.core.health import router as health_router
 from crm.core.logging import configure_logging
 from crm.core.middleware import RequestContextMiddleware
 from crm.modules.accounts.router import router as accounts_router
+from crm.modules.activities.router import router as activities_router
 from crm.modules.audit.router import router as audit_router
 from crm.modules.auth.router import router as auth_router
 from crm.modules.contacts.router import router as contacts_router
+from crm.modules.leads.router import router as leads_router
+from crm.modules.tasks.router import router as tasks_router
 from crm.modules.users.router import router as users_router
 
 logger = logging.getLogger(__name__)
@@ -68,6 +71,9 @@ def create_app() -> FastAPI:
                 "description": "Append-only trail of security and data-changing actions.",
             },
             {"name": "accounts", "description": "Company accounts management."},
+            {"name": "contacts", "description": "Contacts management."},
+            {"name": "activities", "description": "Activity logging and timeline."},
+            {"name": "tasks", "description": "Task management and reminders."},
         ],
     )
 
@@ -93,6 +99,9 @@ def create_app() -> FastAPI:
     v1.include_router(audit_router)
     v1.include_router(accounts_router)
     v1.include_router(contacts_router)
+    v1.include_router(leads_router)
+    v1.include_router(activities_router)
+    v1.include_router(tasks_router)
     app.include_router(v1)
 
     return app

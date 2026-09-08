@@ -34,6 +34,12 @@ class AuditAction(StrEnum):
     CONTACT_UPDATED = "contact.updated"
     CONTACT_DELETED = "contact.deleted"
 
+    # Lead administration
+    LEAD_CREATED = "lead.created"
+    LEAD_UPDATED = "lead.updated"
+    LEAD_DELETED = "lead.deleted"
+    LEAD_CONVERTED = "lead.converted"
+
 
 class AuditEntity(StrEnum):
     USER = "user"

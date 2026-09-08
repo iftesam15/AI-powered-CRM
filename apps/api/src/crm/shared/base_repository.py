@@ -46,6 +46,11 @@ class BaseTenantRepository[ModelT: TenantModel]:
         await self.session.flush()
         return record
 
+    async def update(self, record: ModelT) -> ModelT:
+        """Flush an updated record."""
+        await self.session.flush()
+        return record
+
     async def delete(self, tenant_id: UUID, record_id: UUID) -> bool:
         """Delete a record by ID scoped to tenant."""
         stmt = delete(self.model_cls).where(
