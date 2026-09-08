@@ -143,10 +143,12 @@ export function ActivityTimeline({ items, loading }: ActivityTimelineProps) {
             {categoryIcon(item.category)}
           </div>
 
-          <div className="rounded-lg border bg-card p-4 shadow-xs transition-all hover:shadow-md">
+          <div className="rounded-lg border bg-card p-4 shadow-xs transition-all hover:border-primary/50 hover:shadow-md">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm text-foreground">{item.title}</span>
+                <span className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
+                  {item.title}
+                </span>
                 {priorityBadge(item.priority)}
                 {statusBadge(item.status)}
               </div>

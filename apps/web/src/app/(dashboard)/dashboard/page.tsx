@@ -32,9 +32,9 @@ export default function DashboardPage() {
       */}
       <section className="grid gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-2 xl:grid-cols-4">
         {PLANNED_TILES.map((tile) => (
-          <div key={tile.title} className="bg-background px-5 py-4">
-            <p className="flex items-center gap-2 text-sm font-medium">
-              <tile.icon className="size-4 text-muted-foreground" aria-hidden />
+          <div key={tile.title} className="group bg-background hover:bg-muted/30 transition-colors px-5 py-4">
+            <p className="flex items-center gap-2 text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+              <tile.icon className="size-4 text-muted-foreground group-hover:text-primary transition-colors" aria-hidden />
               {tile.title}
             </p>
             <p className="mt-1.5 text-xs text-muted-foreground">

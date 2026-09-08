@@ -86,8 +86,8 @@ export function ConvertLeadDialog({ lead, open, onOpenChange }: ConvertLeadDialo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
-            <CheckCircle2 className="h-5 w-5 text-purple-400" />
+          <DialogTitle className="flex items-center gap-2 text-xl font-semibold text-foreground">
+            <CheckCircle2 className="h-5 w-5 text-primary" />
             Convert Qualified Lead
           </DialogTitle>
           <DialogDescription>
@@ -97,37 +97,39 @@ export function ConvertLeadDialog({ lead, open, onOpenChange }: ConvertLeadDialo
 
         <div className="space-y-5 py-2">
           {/* Action Overview Box */}
-          <Alert variant="default" className="border-purple-500/30 bg-purple-500/10 text-purple-200">
-            <ShieldCheck className="h-4 w-4 text-purple-400" />
-            <AlertTitle className="text-purple-300 font-semibold">Transactional Domain Conversion</AlertTitle>
-            <AlertDescription className="text-xs text-purple-200/80">
-              This action creates a new Contact record, optionally links or creates an Account, updates lead status to <strong>Converted</strong>, and locks the lead history in a single atomic transaction.
+          <Alert className="border-primary/25 bg-primary/5 text-foreground">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            <AlertTitle className="text-sm font-semibold text-primary">Transactional Domain Conversion</AlertTitle>
+            <AlertDescription className="text-xs text-muted-foreground leading-relaxed mt-1">
+              This action creates a new Contact record, optionally links or creates an Account, updates lead status to <strong className="text-foreground font-semibold">Converted</strong>, and locks the lead history in a single atomic transaction.
             </AlertDescription>
           </Alert>
 
           {/* Contact Summary */}
           <div className="rounded-lg border border-border/60 p-3 bg-muted/30">
             <div className="flex items-center gap-2 font-medium text-sm text-foreground">
-              <UserCheck className="h-4 w-4 text-emerald-400" />
+              <UserCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               Contact Record to Create:
             </div>
             <div className="mt-1 text-xs text-muted-foreground pl-6">
-              <strong>{lead.first_name} {lead.last_name}</strong> ({lead.email || "No email"} · {lead.title || "No title"})
+              <strong className="text-foreground">{lead.first_name} {lead.last_name}</strong> ({lead.email || "No email"} · {lead.title || "No title"})
             </div>
           </div>
 
           {/* Account Options */}
           <div className="space-y-3">
             <Label className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-              <Building2 className="h-4 w-4 text-blue-400" />
+              <Building2 className="h-4 w-4 text-primary" />
               Account Handling
             </Label>
 
             <div className="space-y-2">
               {/* Option 1: Create New Account */}
               <div
-                className={`cursor-pointer rounded-lg border p-3 transition-colors ${
-                  accountOption === "create" ? "border-purple-500 bg-purple-500/5" : "border-border/60 hover:bg-muted/20"
+                className={`group cursor-pointer rounded-lg border p-3 transition-all ${
+                  accountOption === "create"
+                    ? "border-primary bg-primary/5 text-foreground shadow-xs"
+                    : "border-border/60 hover:border-primary/50 hover:bg-muted/40"
                 }`}
                 onClick={() => setAccountOption("create")}
               >
@@ -137,9 +139,11 @@ export function ConvertLeadDialog({ lead, open, onOpenChange }: ConvertLeadDialo
                     name="accountOption"
                     checked={accountOption === "create"}
                     onChange={() => setAccountOption("create")}
-                    className="accent-purple-500"
+                    className="accent-primary"
                   />
-                  <span className="text-sm font-medium">Create a new Account</span>
+                  <span className="text-sm font-medium transition-colors group-hover:text-primary">
+                    Create a new Account
+                  </span>
                 </div>
                 {accountOption === "create" && (
                   <div className="mt-3 pl-6">
@@ -156,8 +160,10 @@ export function ConvertLeadDialog({ lead, open, onOpenChange }: ConvertLeadDialo
 
               {/* Option 2: Link Existing Account */}
               <div
-                className={`cursor-pointer rounded-lg border p-3 transition-colors ${
-                  accountOption === "existing" ? "border-purple-500 bg-purple-500/5" : "border-border/60 hover:bg-muted/20"
+                className={`group cursor-pointer rounded-lg border p-3 transition-all ${
+                  accountOption === "existing"
+                    ? "border-primary bg-primary/5 text-foreground shadow-xs"
+                    : "border-border/60 hover:border-primary/50 hover:bg-muted/40"
                 }`}
                 onClick={() => setAccountOption("existing")}
               >
@@ -167,9 +173,11 @@ export function ConvertLeadDialog({ lead, open, onOpenChange }: ConvertLeadDialo
                     name="accountOption"
                     checked={accountOption === "existing"}
                     onChange={() => setAccountOption("existing")}
-                    className="accent-purple-500"
+                    className="accent-primary"
                   />
-                  <span className="text-sm font-medium">Link to an existing Account</span>
+                  <span className="text-sm font-medium transition-colors group-hover:text-primary">
+                    Link to an existing Account
+                  </span>
                 </div>
                 {accountOption === "existing" && (
                   <div className="mt-3 pl-6">
@@ -191,8 +199,10 @@ export function ConvertLeadDialog({ lead, open, onOpenChange }: ConvertLeadDialo
 
               {/* Option 3: Contact only */}
               <div
-                className={`cursor-pointer rounded-lg border p-3 transition-colors ${
-                  accountOption === "none" ? "border-purple-500 bg-purple-500/5" : "border-border/60 hover:bg-muted/20"
+                className={`group cursor-pointer rounded-lg border p-3 transition-all ${
+                  accountOption === "none"
+                    ? "border-primary bg-primary/5 text-foreground shadow-xs"
+                    : "border-border/60 hover:border-primary/50 hover:bg-muted/40"
                 }`}
                 onClick={() => setAccountOption("none")}
               >
@@ -202,9 +212,11 @@ export function ConvertLeadDialog({ lead, open, onOpenChange }: ConvertLeadDialo
                     name="accountOption"
                     checked={accountOption === "none"}
                     onChange={() => setAccountOption("none")}
-                    className="accent-purple-500"
+                    className="accent-primary"
                   />
-                  <span className="text-sm font-medium">Do not create or link an Account (Contact only)</span>
+                  <span className="text-sm font-medium transition-colors group-hover:text-primary">
+                    Do not create or link an Account (Contact only)
+                  </span>
                 </div>
               </div>
             </div>
@@ -217,7 +229,6 @@ export function ConvertLeadDialog({ lead, open, onOpenChange }: ConvertLeadDialo
           </Button>
           <Button
             type="button"
-            className="bg-purple-600 hover:bg-purple-700 text-white"
             onClick={handleConvert}
             disabled={convertMutation.isPending || (accountOption === "existing" && !selectedAccountId)}
           >

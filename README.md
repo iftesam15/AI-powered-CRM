@@ -11,7 +11,11 @@ following [docs/CRM_SPRINT_PLAN.md](./docs/CRM_SPRINT_PLAN.md). Progress is trac
 | 0 | Scaffold: runnable API and web app, health probes, migration pipeline | Done |
 | 1 | Tenants and authentication | Done (Web + API) |
 | 2 | Users, RBAC and the audit spine | Done (Web + API) |
-| 3+ | Accounts, contacts, activities, pipeline | Not started |
+| 3 | Accounts (E2E CRUD) | Done (Web + API) |
+| 4 | Contacts (+ account links) | Done (Web + API) |
+| 5 | Activities & Tasks (timeline + task manager) | Done (Web + API) |
+| 6 | Leads + conversion | Done (Web + API) |
+| 7+ | Opportunities, Pipeline kanban, Reports | Next up |
 
 The web app's auth flow can run against an in-memory mock (`NEXT_PUBLIC_USE_MOCK_API=true`)
 or directly against the live FastAPI backend (`NEXT_PUBLIC_USE_MOCK_API=false`).

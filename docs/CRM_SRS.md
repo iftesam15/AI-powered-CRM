@@ -142,7 +142,8 @@ A new, self-contained web application with a browser-based UI and a RESTful back
 | ID | Requirement | Priority |
 |---|---|---|
 | FR-ACT.1 | The system shall allow users to log activities (call, email, meeting, note) against contacts, accounts, leads, and opportunities. | M |
-| FR-ACT.2 | The system shall allow users to create tasks with due dates, assignees, and completion status. | M |
+| FR-ACT.2 | The system shall allow users to create tasks with due dates, assignees, priorities, and completion status. Tasks created in record contexts or from the global task view shall support linking to an account (company) and/or contact. | M |
+| FR-ACT.2a | The system shall display the associated account (company) and contact on task listings with direct navigation links to the related entity. | M |
 | FR-ACT.3 | The system shall display a chronological activity timeline on each record. | M |
 | FR-ACT.4 | The system shall send reminders for upcoming or overdue tasks. | S |
 | FR-ACT.5 | The system shall optionally sync meetings/tasks with an external calendar. | C |

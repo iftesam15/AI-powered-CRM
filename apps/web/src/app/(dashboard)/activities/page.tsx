@@ -112,7 +112,9 @@ export default function ActivitiesPage() {
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm text-foreground">{act.title}</span>
+                    <span className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
+                      {act.title}
+                    </span>
                     <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary capitalize">
                       {act.activity_type}
                     </span>

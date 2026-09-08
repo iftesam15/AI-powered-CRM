@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Building2, X } from "lucide-react";
 
+import { accountsQueryOptions } from "@/features/accounts/api/queries";
 import { createTask } from "@/features/tasks/api";
 import type { TaskPriority, TaskStatus } from "@/features/tasks/types";
 
@@ -31,8 +33,21 @@ export function CreateTaskModal({
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("medium");
   const [dueDate, setDueDate] = useState("");
+  const [selectedAccountId, setSelectedAccountId] = useState(accountId || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch available accounts when no account is pre-provided
+  const { data: accountsData } = useQuery({
+    ...accountsQueryOptions({ limit: 100 }),
+    enabled: isOpen && !accountId,
+  });
+
+  useEffect(() => {
+    if (accountId) {
+      setSelectedAccountId(accountId);
+    }
+  }, [accountId]);
 
   if (!isOpen) return null;
 
@@ -46,21 +61,26 @@ export function CreateTaskModal({
     setLoading(true);
     setError(null);
 
+    const finalAccountId = accountId || (selectedAccountId && selectedAccountId !== "none" ? selectedAccountId : undefined);
+    const finalEntityType = entityType || (finalAccountId ? "account" : undefined);
+    const finalEntityId = entityId || (finalAccountId ? finalAccountId : undefined);
+
     try {
       await createTask({
         title: title.trim(),
         description: description.trim() || undefined,
         priority,
         due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
-        entity_type: entityType,
-        entity_id: entityId,
-        account_id: accountId,
+        entity_type: finalEntityType,
+        entity_id: finalEntityId,
+        account_id: finalAccountId,
         contact_id: contactId,
       });
       setTitle("");
       setDescription("");
       setPriority("medium");
       setDueDate("");
+      setSelectedAccountId(accountId || "");
       onSuccess?.();
       onClose();
     } catch (err: any) {
@@ -125,6 +145,28 @@ export function CreateTaskModal({
               className="mt-1.5 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"
             />
           </div>
+
+          {!accountId && (
+            <div>
+              <label htmlFor="task-account" className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                Company / Account (Optional)
+              </label>
+              <select
+                id="task-account"
+                value={selectedAccountId}
+                onChange={(e) => setSelectedAccountId(e.target.value)}
+                className="mt-1.5 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-background"
+              >
+                <option value="none">None (General / Internal Task)</option>
+                {accountsData?.items.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>

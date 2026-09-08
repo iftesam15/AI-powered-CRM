@@ -300,9 +300,9 @@ export function AccountDetailView({ id }: AccountDetailViewProps) {
               ) : (
                 <div className="divide-y rounded-md border">
                   {contacts.map((c) => (
-                    <div key={c.id} className="flex items-center justify-between p-3 text-sm hover:bg-muted/50 transition-colors">
+                    <div key={c.id} className="group flex items-center justify-between p-3 text-sm hover:bg-muted/50 transition-colors">
                       <div>
-                        <Link href={`/contacts/${c.id}`} className="font-medium hover:underline text-primary">
+                        <Link href={`/contacts/${c.id}`} className="font-medium hover:underline text-foreground group-hover:text-primary transition-colors">
                           {c.first_name} {c.last_name}
                         </Link>
                         {c.title && <span className="text-xs text-muted-foreground ml-2">({c.title})</span>}

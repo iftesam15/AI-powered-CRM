@@ -132,7 +132,6 @@ export function LeadDetailView({ id }: LeadDetailViewProps) {
                 <Edit className="mr-2 h-4 w-4" /> Edit
               </Button>
               <Button
-                className="bg-purple-600 hover:bg-purple-700 text-white"
                 onClick={() => setConverting(lead)}
               >
                 <Sparkles className="mr-2 h-4 w-4" /> Convert Lead
@@ -140,7 +139,7 @@ export function LeadDetailView({ id }: LeadDetailViewProps) {
             </PermissionGate>
           ) : (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-md border border-border">
-              <Lock className="h-3.5 w-3.5 text-purple-400" />
+              <Lock className="h-3.5 w-3.5 text-muted-foreground" />
               <span>Converted Record (Locked)</span>
             </div>
           )}
@@ -149,15 +148,15 @@ export function LeadDetailView({ id }: LeadDetailViewProps) {
 
       {/* Converted Record Banner */}
       {lead.is_converted && (
-        <Alert className="border-purple-500/30 bg-purple-500/10 text-purple-200">
-          <CheckCircle2 className="h-4 w-4 text-purple-400" />
-          <AlertTitle className="text-purple-300 font-semibold">Lead Converted Successfully</AlertTitle>
-          <AlertDescription className="text-xs text-purple-200/90 mt-1 flex flex-wrap items-center gap-4">
+        <Alert className="border-emerald-500/30 bg-emerald-500/10 text-emerald-950 dark:text-emerald-200">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+          <AlertTitle className="text-emerald-800 dark:text-emerald-300 font-semibold">Lead Converted Successfully</AlertTitle>
+          <AlertDescription className="text-xs text-emerald-900/90 dark:text-emerald-200/90 mt-1 flex flex-wrap items-center gap-4">
             <span>Converted on {lead.converted_at ? formatDate(lead.converted_at) : "N/A"}.</span>
             {lead.converted_contact_id && (
               <Link
                 href={routes.contact(lead.converted_contact_id)}
-                className="inline-flex items-center text-purple-300 hover:underline font-medium"
+                className="inline-flex items-center text-emerald-700 dark:text-emerald-300 hover:text-emerald-950 dark:hover:text-emerald-100 underline font-medium"
               >
                 View Contact Record ({lead.converted_contact_name || "Contact"}) <ExternalLink className="ml-1 h-3 w-3" />
               </Link>
@@ -165,7 +164,7 @@ export function LeadDetailView({ id }: LeadDetailViewProps) {
             {lead.converted_account_id && (
               <Link
                 href={routes.account(lead.converted_account_id)}
-                className="inline-flex items-center text-purple-300 hover:underline font-medium"
+                className="inline-flex items-center text-emerald-700 dark:text-emerald-300 hover:text-emerald-950 dark:hover:text-emerald-100 underline font-medium"
               >
                 View Account Record ({lead.converted_account_name || "Account"}) <ExternalLink className="ml-1 h-3 w-3" />
               </Link>

@@ -116,13 +116,14 @@
 | ID | As a… | I want… | So that… | Priority | FR |
 |---|---|---|---|---|---|
 | US-ACT-01 | Sales Representative | to log activities (call, email, meeting, note) against contacts, accounts, leads, and opportunities | interaction history is centralized | M | FR-ACT.1 |
-| US-ACT-02 | Sales Representative | to create tasks with due dates, assignees, and completion status | follow-ups are tracked | M | FR-ACT.2 |
+| US-ACT-02 | Sales Representative | to create tasks with due dates, priorities, assignees, and company/contact associations (both in-context and from the global task view) | follow-ups are tracked with clear company context | M | FR-ACT.2, FR-ACT.2a |
 | US-ACT-03 | Sales Representative | a chronological activity timeline on each record | I can see what happened and when | M | FR-ACT.3 |
 | US-ACT-04 | Sales Representative | reminders for upcoming or overdue tasks | I do not miss follow-ups | S | FR-ACT.4 |
 | US-ACT-05 | Sales Representative | optional sync of meetings/tasks with an external calendar | my calendar and CRM stay aligned | C | FR-ACT.5 |
 
 ### Acceptance criteria
 
+- **US-ACT-02:** Tasks can be created directly from an account/contact record or from the global task view. When created globally, users can optionally associate a company (account) from a selectable list. Both global and record-level task lists clearly display the linked company (with direct navigation link to the account) and contact name.
 - **US-ACT-03:** Timeline is chronological (newest first) and includes activities (and related task events) for that record.
 - **US-ACT-04:** Reminders are delivered via the notification channel(s) enabled for the user.
 

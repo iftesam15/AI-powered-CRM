@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Circle, ClipboardList, Clock, Filter, Plus, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { Building2, CheckCircle2, Circle, ClipboardList, Clock, Filter, Plus, RefreshCw, User } from "lucide-react";
 
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { fetchTasks, updateTask } from "@/features/tasks/api";
@@ -168,8 +169,10 @@ export default function TasksPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span
-                      className={`text-sm font-semibold ${
-                        task.status === "completed" ? "line-through text-muted-foreground" : "text-foreground"
+                      className={`text-sm font-semibold transition-colors ${
+                        task.status === "completed"
+                          ? "line-through text-muted-foreground group-hover:text-muted-foreground/80"
+                          : "text-foreground group-hover:text-primary"
                       }`}
                     >
                       {task.title}
@@ -190,6 +193,34 @@ export default function TasksPage() {
 
                   {task.description && (
                     <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>
+                  )}
+
+                  {/* Company / Contact Association */}
+                  {(task.account_name || task.contact_name) && (
+                    <div className="flex flex-wrap items-center gap-3 mt-2">
+                      {task.account_name && (
+                        task.account_id ? (
+                          <Link
+                            href={`/accounts/${task.account_id}`}
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline bg-primary/10 px-2 py-0.5 rounded-md"
+                          >
+                            <Building2 className="h-3.5 w-3.5" />
+                            {task.account_name}
+                          </Link>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+                            <Building2 className="h-3.5 w-3.5" />
+                            {task.account_name}
+                          </span>
+                        )
+                      )}
+                      {task.contact_name && (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <User className="h-3.5 w-3.5 text-muted-foreground/70" />
+                          <span>Contact: <strong className="text-foreground">{task.contact_name}</strong></span>
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

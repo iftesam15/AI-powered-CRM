@@ -168,11 +168,11 @@ export function LeadsTable() {
               </TableRow>
             ) : (
               leads.map((lead) => (
-                <TableRow key={lead.id} className="hover:bg-muted/40">
+                <TableRow key={lead.id} className="group hover:bg-muted/40 transition-colors">
                   <TableCell className="font-medium">
                     <Link
                       href={routes.lead(lead.id)}
-                      className="hover:underline text-foreground font-semibold flex items-center gap-1.5"
+                      className="hover:underline text-foreground group-hover:text-primary transition-colors font-semibold flex items-center gap-1.5"
                     >
                       {lead.first_name} {lead.last_name}
                     </Link>
@@ -228,7 +228,7 @@ export function LeadsTable() {
                         {!lead.is_converted && (
                           <PermissionGate permission={PERMISSIONS.leadsWrite}>
                             <DropdownMenuItem
-                              className="text-purple-400 font-medium focus:text-purple-300"
+                              className="text-primary font-medium focus:text-primary focus:bg-primary/10"
                               onClick={() => setConvertingLead(lead)}
                             >
                               <Sparkles className="mr-2 h-4 w-4" />
