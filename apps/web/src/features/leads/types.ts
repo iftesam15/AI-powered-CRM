@@ -55,6 +55,7 @@ export interface ConvertLeadInput {
   account_id?: string | null;
   account_name?: string | null;
   opportunity_name?: string | null;
+  opportunity_amount?: number | string | null;
 }
 
 export interface ConvertLeadResponse {

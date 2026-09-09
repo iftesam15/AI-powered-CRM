@@ -326,6 +326,127 @@ async def seed() -> None:
                 )
                 await lead_repo.create(lead_obj)
 
+        # 7. Check or create demo pipeline & opportunities (Sprint 7)
+        from crm.modules.opportunities.models import Opportunity, OpportunityStageHistory
+        from crm.modules.opportunities.repository import OpportunityRepository
+        from crm.modules.pipelines.service import PipelineService
+        from datetime import date, datetime, timezone
+        from decimal import Decimal
+
+        pipe_service = PipelineService(session)
+        pipeline = await pipe_service.seed_default_pipeline(tenant.id)
+        opp_repo = OpportunityRepository(session)
+        existing_opps_count = await opp_repo.count_opportunities(tenant.id)
+
+        if existing_opps_count == 0 and pipeline.stages:
+            stages_by_name = {s.name: s for s in pipeline.stages}
+            qual_stage = stages_by_name.get("Qualification") or pipeline.stages[0]
+            disc_stage = stages_by_name.get("Discovery") or pipeline.stages[1]
+            prop_stage = stages_by_name.get("Proposal") or pipeline.stages[2]
+            nego_stage = stages_by_name.get("Negotiation") or pipeline.stages[3]
+            won_stage = stages_by_name.get("Closed Won") or pipeline.stages[4]
+            lost_stage = stages_by_name.get("Closed Lost") or pipeline.stages[5]
+
+            acme_acc = await account_repo.get_by_name(tenant.id, "Acme Logistics Corp")
+            apex_acc = await account_repo.get_by_name(tenant.id, "Apex Global Freight")
+
+            demo_opps = [
+                {
+                    "name": "Midwest Fleet Expansion Deal",
+                    "amount": Decimal("45000.00"),
+                    "stage": qual_stage,
+                    "account_id": acme_acc.id if acme_acc else None,
+                    "expected_close_date": date(2026, 10, 15),
+                    "probability": qual_stage.probability,
+                    "status": "open",
+                    "notes": "Initial interest in adding 12 dry van routes.",
+                },
+                {
+                    "name": "Cold-Chain Reefer Fleet Upgrade",
+                    "amount": Decimal("82000.00"),
+                    "stage": disc_stage,
+                    "account_id": apex_acc.id if apex_acc else None,
+                    "expected_close_date": date(2026, 11, 1),
+                    "probability": disc_stage.probability,
+                    "status": "open",
+                    "notes": "Technical specs reviewed; temperature-controlled monitoring required.",
+                },
+                {
+                    "name": "Pacific Northwest Regional Contract",
+                    "amount": Decimal("120000.00"),
+                    "stage": prop_stage,
+                    "account_id": acme_acc.id if acme_acc else None,
+                    "expected_close_date": date(2026, 10, 30),
+                    "probability": prop_stage.probability,
+                    "status": "open",
+                    "notes": "Formal proposal submitted for 3-year term.",
+                },
+                {
+                    "name": "Enterprise GPS Telematics Rollout",
+                    "amount": Decimal("65000.00"),
+                    "stage": nego_stage,
+                    "account_id": acme_acc.id if acme_acc else None,
+                    "expected_close_date": date(2026, 9, 25),
+                    "probability": nego_stage.probability,
+                    "status": "open",
+                    "notes": "Contract final review with legal and operations.",
+                },
+                {
+                    "name": "Q2 Dedicated Lanes Contract",
+                    "amount": Decimal("95000.00"),
+                    "stage": won_stage,
+                    "account_id": apex_acc.id if apex_acc else None,
+                    "expected_close_date": date(2026, 8, 30),
+                    "probability": 100,
+                    "status": "won",
+                    "won_at": datetime.now(timezone.utc),
+                    "notes": "Signed and executed.",
+                },
+                {
+                    "name": "Spot Brokerage Integration",
+                    "amount": Decimal("30000.00"),
+                    "stage": lost_stage,
+                    "account_id": acme_acc.id if acme_acc else None,
+                    "expected_close_date": date(2026, 8, 15),
+                    "probability": 0,
+                    "status": "lost",
+                    "lost_at": datetime.now(timezone.utc),
+                    "loss_reason": "Competitor undercut rate by 18% on spot margin.",
+                    "notes": "Re-evaluate during annual RFP cycle.",
+                },
+            ]
+
+            print(f"Seeding {len(demo_opps)} sample opportunities...")
+            for opp_data in demo_opps:
+                stg = opp_data["stage"]
+                opp_record = Opportunity(
+                    tenant_id=tenant.id,
+                    name=opp_data["name"],
+                    amount=opp_data["amount"],
+                    currency="USD",
+                    pipeline_id=pipeline.id,
+                    stage_id=stg.id,
+                    account_id=opp_data["account_id"],
+                    owner_id=admin_id,
+                    expected_close_date=opp_data["expected_close_date"],
+                    probability=opp_data["probability"],
+                    status=opp_data["status"],
+                    loss_reason=opp_data.get("loss_reason"),
+                    won_at=opp_data.get("won_at"),
+                    lost_at=opp_data.get("lost_at"),
+                    notes=opp_data.get("notes"),
+                )
+                created_opp = await opp_repo.create(opp_record)
+                hist = OpportunityStageHistory(
+                    tenant_id=tenant.id,
+                    opportunity_id=created_opp.id,
+                    from_stage_id=None,
+                    to_stage_id=stg.id,
+                    changed_by_id=admin_id,
+                    days_in_stage=0,
+                )
+                await opp_repo.create_stage_history(hist)
+
         await session.commit()
         print("Database seeding completed successfully.")
         await engine.dispose()

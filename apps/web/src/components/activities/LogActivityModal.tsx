@@ -60,14 +60,14 @@ export function LogActivityModal({
       setActivityType("call");
       onSuccess?.();
       onClose();
-    } catch (err: any) {
-      setError(err.message || "Failed to log activity");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to log activity");
     } finally {
       setLoading(false);
     }
   }
 
-  const types: Array<{ type: ActivityType; label: string; icon: any }> = [
+  const types: Array<{ type: ActivityType; label: string; icon: React.ComponentType<{ className?: string }> }> = [
     { type: "call", label: "Call", icon: PhoneCall },
     { type: "meeting", label: "Meeting", icon: Calendar },
     { type: "email", label: "Email", icon: Mail },

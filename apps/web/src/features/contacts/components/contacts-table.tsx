@@ -11,9 +11,11 @@ import {
   Phone,
   Search,
   Trash2,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { ExportButton } from "@/features/exports/components/export-button";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { PaginationFooter } from "@/components/shared/pagination-footer";
@@ -42,6 +44,7 @@ import {
   contactsQueryOptions,
   useDeleteContact,
 } from "@/features/contacts/api/queries";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EditContactDialog } from "@/features/contacts/components/edit-contact-dialog";
 import type { CrmContact } from "@/features/contacts/types";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -53,6 +56,7 @@ export function ContactsTable() {
   const [search, setSearch] = useState("");
   const [offset, setOffset] = useState(0);
   const [editing, setEditing] = useState<CrmContact | null>(null);
+  const [deleting, setDeleting] = useState<CrmContact | null>(null);
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -72,13 +76,7 @@ export function ContactsTable() {
   }
 
   function handleDelete(contact: CrmContact) {
-    if (
-      confirm(
-        `Are you sure you want to delete contact '${contact.first_name} ${contact.last_name}'?`
-      )
-    ) {
-      deleteMutation.mutate(contact.id);
-    }
+    setDeleting(contact);
   }
 
   const contacts = data?.items ?? [];
@@ -96,6 +94,19 @@ export function ContactsTable() {
             onChange={(e) => changeSearch(e.target.value)}
             className="pl-9"
           />
+        </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <PermissionGate permission={PERMISSIONS.importsWrite}>
+            <Button variant="outline" size="sm" asChild className="gap-2">
+              <Link href="/imports">
+                <Upload className="size-4" />
+                Import CSV
+              </Link>
+            </Button>
+          </PermissionGate>
+          <PermissionGate permission={PERMISSIONS.exportsRead}>
+            <ExportButton entityType="contacts" />
+          </PermissionGate>
         </div>
       </div>
 
@@ -261,6 +272,33 @@ export function ContactsTable() {
         open={Boolean(editing)}
         onOpenChange={(open) => {
           if (!open) setEditing(null);
+        }}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
+        title="Delete Contact"
+        description={
+          <>
+            Are you sure you want to delete contact{" "}
+            <strong className="text-foreground">
+              {deleting?.first_name} {deleting?.last_name}
+            </strong>
+            ? This action cannot be undone.
+          </>
+        }
+        confirmText="Delete Contact"
+        variant="destructive"
+        isLoading={deleteMutation.isPending}
+        onConfirm={async () => {
+          if (deleting) {
+            await deleteMutation.mutateAsync(deleting.id);
+            setDeleting(null);
+          }
         }}
       />
     </div>

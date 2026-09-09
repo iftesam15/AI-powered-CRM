@@ -5,22 +5,20 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowUpDown,
   Building2,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Edit,
   Mail,
   MoreHorizontal,
   Phone,
-  Plus,
   Search,
   Sparkles,
   Trash2,
-  UserCheck,
 } from "lucide-react";
 import Link from "next/link";
 
 import { PermissionGate } from "@/components/shared/permission-gate";
+import { ExportButton } from "@/features/exports/components/export-button";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -122,6 +120,10 @@ export function LeadsTable() {
             <TabsTrigger value="converted">Converted</TabsTrigger>
           </TabsList>
         </Tabs>
+
+        <PermissionGate permission={PERMISSIONS.exportsRead}>
+          <ExportButton entityType="leads" />
+        </PermissionGate>
       </div>
 
       {/* Table Container */}

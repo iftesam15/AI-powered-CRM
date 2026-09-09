@@ -23,7 +23,11 @@ from crm.modules.activities.router import router as activities_router
 from crm.modules.audit.router import router as audit_router
 from crm.modules.auth.router import router as auth_router
 from crm.modules.contacts.router import router as contacts_router
+from crm.modules.data_ops.router import router as data_ops_router
 from crm.modules.leads.router import router as leads_router
+from crm.modules.opportunities.router import router as opportunities_router
+from crm.modules.pipelines.router import router as pipelines_router
+from crm.modules.search.router import router as search_router
 from crm.modules.tasks.router import router as tasks_router
 from crm.modules.users.router import router as users_router
 
@@ -100,8 +104,12 @@ def create_app() -> FastAPI:
     v1.include_router(accounts_router)
     v1.include_router(contacts_router)
     v1.include_router(leads_router)
+    v1.include_router(pipelines_router)
+    v1.include_router(opportunities_router)
     v1.include_router(activities_router)
     v1.include_router(tasks_router)
+    v1.include_router(search_router)
+    v1.include_router(data_ops_router)
     app.include_router(v1)
 
     return app

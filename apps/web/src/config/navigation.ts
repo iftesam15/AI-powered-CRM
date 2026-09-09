@@ -24,7 +24,7 @@ import { PERMISSIONS, type Permission } from "@/lib/permissions";
  * Anything above the current sprint renders as a disabled shell entry so the
  * information architecture is visible without pretending the feature is done.
  */
-export const CURRENT_SPRINT = 6;
+export const CURRENT_SPRINT = 8;
 
 export interface NavItem {
   title: string;

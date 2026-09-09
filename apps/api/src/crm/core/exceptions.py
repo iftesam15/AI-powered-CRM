@@ -87,6 +87,12 @@ class ConflictError(AppError):
     detail = "That change conflicts with the current state."
 
 
+class ValidationError(AppError):
+    status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
+    code = "validation_error"
+    detail = "Validation failed."
+
+
 def _body(detail: str, code: str, **extra: Any) -> dict[str, Any]:
     return {"detail": detail, "code": code, **extra}
 

@@ -20,6 +20,8 @@ export const QUERY_KEYS = {
   tasks: ["tasks"] as const,
   users: ["users"] as const,
   audit: ["audit"] as const,
+  search: ["search"] as const,
+  dataOps: ["dataOps"] as const,
 } as const;
 
 export const DEFAULT_PAGE_SIZE = 25;

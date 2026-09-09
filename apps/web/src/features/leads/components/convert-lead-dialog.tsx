@@ -43,6 +43,10 @@ export function ConvertLeadDialog({ lead, open, onOpenChange }: ConvertLeadDialo
   const [customAccountName, setCustomAccountName] = useState("");
   const [selectedAccountId, setSelectedAccountId] = useState("");
 
+  const [createOpportunity, setCreateOpportunity] = useState(true);
+  const [oppName, setOppName] = useState("");
+  const [oppAmount, setOppAmount] = useState("");
+
   const accountsQuery = useQuery(accountsQueryOptions({ limit: 100 }));
   const existingAccounts = accountsQuery.data?.items ?? [];
 
@@ -62,6 +66,11 @@ export function ConvertLeadDialog({ lead, open, onOpenChange }: ConvertLeadDialo
       account_id = selectedAccountId || null;
     }
 
+    const opportunity_name = createOpportunity
+      ? oppName.trim() || `${lead.company_name || `${lead.first_name} ${lead.last_name}`} Deal`
+      : null;
+    const opportunity_amount = createOpportunity && oppAmount ? Number(oppAmount) : null;
+
     convertMutation.mutate(
       {
         id: lead.id,
@@ -69,12 +78,16 @@ export function ConvertLeadDialog({ lead, open, onOpenChange }: ConvertLeadDialo
           create_account,
           account_id,
           account_name,
+          opportunity_name,
+          opportunity_amount,
         },
       },
       {
         onSuccess: (res) => {
           onOpenChange(false);
-          if (res.contact_id) {
+          if (res.opportunity_id) {
+            router.push(routes.opportunity(res.opportunity_id));
+          } else if (res.contact_id) {
             router.push(routes.contact(res.contact_id));
           }
         },
@@ -220,6 +233,48 @@ export function ConvertLeadDialog({ lead, open, onOpenChange }: ConvertLeadDialo
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Opportunity Creation Option */}
+          <div className="space-y-3 pt-1 border-t border-border/40">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold text-foreground flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={createOpportunity}
+                  onChange={(e) => setCreateOpportunity(e.target.checked)}
+                  className="rounded border-border accent-primary"
+                />
+                Create a Sales Opportunity
+              </Label>
+              <span className="text-[11px] text-muted-foreground">Enters initial pipeline stage</span>
+            </div>
+
+            {createOpportunity && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Deal Name *</Label>
+                  <Input
+                    className="mt-1 h-8 text-xs bg-background"
+                    value={oppName}
+                    onChange={(e) => setOppName(e.target.value)}
+                    placeholder={`${lead.company_name || `${lead.first_name} ${lead.last_name}`} Deal`}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Expected Value ($ USD)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="100"
+                    className="mt-1 h-8 text-xs bg-background"
+                    value={oppAmount}
+                    onChange={(e) => setOppAmount(e.target.value)}
+                    placeholder="e.g. 25000"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

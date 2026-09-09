@@ -45,6 +45,8 @@ services:
       CORS_ORIGINS: http://localhost:3000
     ports:
       - "8000:8000"
+    volumes:
+      - ./apps/api/src:/app/src
     depends_on:
       db:
         condition: service_healthy

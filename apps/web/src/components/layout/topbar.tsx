@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 
@@ -12,6 +13,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { env } from "@/config/env";
 import { navigation, settingsNavigation } from "@/config/navigation";
 import { useSession } from "@/features/auth/hooks/use-session";
+import { SearchCommand } from "@/features/search/components/search-command";
 
 const ALL_ITEMS = [...navigation.flatMap((s) => s.items), ...settingsNavigation];
 
@@ -26,6 +28,19 @@ function useCurrentTitle() {
 export function Topbar() {
   const { tenant } = useSession();
   const title = useCurrentTitle();
+  const [searchOpen, setSearchOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setSearchOpen((open) => !open);
+      }
+    };
+
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
 
   return (
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-3 border-b bg-background/85 px-4 backdrop-blur-sm">
@@ -46,18 +61,21 @@ export function Topbar() {
           </Badge>
         ) : null}
 
-        {/* Global search is delivered in sprint 8. The control is shown disabled
-            so the shell's information architecture stays honest. */}
         <Button
           variant="outline"
           size="sm"
-          disabled
+          onClick={() => setSearchOpen(true)}
           className="gap-2 text-muted-foreground"
-          title="Global search arrives in sprint 8"
+          title="Search CRM (Cmd+K)"
         >
           <Search className="size-4" aria-hidden />
-          <span className="hidden sm:inline">Search</span>
+          <span className="hidden sm:inline">Search...</span>
+          <kbd className="pointer-events-none hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+            <span className="text-xs">⌘</span>K
+          </kbd>
         </Button>
+
+        <SearchCommand open={searchOpen} onOpenChange={setSearchOpen} />
 
         <ThemeToggle />
       </div>

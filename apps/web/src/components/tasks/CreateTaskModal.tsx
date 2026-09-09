@@ -83,8 +83,8 @@ export function CreateTaskModal({
       setSelectedAccountId(accountId || "");
       onSuccess?.();
       onClose();
-    } catch (err: any) {
-      setError(err.message || "Failed to create task");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to create task");
     } finally {
       setLoading(false);
     }

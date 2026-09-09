@@ -29,8 +29,10 @@ class Permission(StrEnum):
     ACTIVITIES_WRITE = "activities:write"
     TASKS_READ = "tasks:read"
     TASKS_WRITE = "tasks:write"
+    SEARCH_READ = "search:read"
     REPORTS_READ = "reports:read"
     IMPORTS_WRITE = "imports:write"
+    EXPORTS_READ = "exports:read"
     USERS_READ = "users:read"
     USERS_WRITE = "users:write"
     TENANT_READ = "tenant:read"
@@ -46,6 +48,8 @@ READ_ONLY_PERMISSIONS: Final[list[str]] = [
     Permission.PIPELINE_READ,
     Permission.ACTIVITIES_READ,
     Permission.TASKS_READ,
+    Permission.SEARCH_READ,
+    Permission.EXPORTS_READ,
     Permission.REPORTS_READ,
 ]
 
@@ -57,6 +61,7 @@ SALES_REP_PERMISSIONS: Final[list[str]] = [
     Permission.OPPORTUNITIES_WRITE,
     Permission.ACTIVITIES_WRITE,
     Permission.TASKS_WRITE,
+    Permission.IMPORTS_WRITE,
 ]
 
 SALES_MANAGER_PERMISSIONS: Final[list[str]] = [

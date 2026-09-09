@@ -7,10 +7,10 @@ the start and end of every sprint.
 
 | Field | Value |
 |---|---|
-| Current sprint | **6 — Leads + conversion** |
+| Current sprint | **8 — Search + CSV import/export** |
 | Status | ✅ Done |
-| Last updated | 2026-09-08 |
-| Milestone next up | ★ P1 complete after sprint 7 |
+| Last updated | 2026-09-09 |
+| Milestone next up | ★ Sprint 9: Dashboards & Reports |
 
 ---
 
@@ -25,8 +25,8 @@ the start and end of every sprint.
 | 4 | Contacts (+ account links) | ✅ Done | 2026-09-07 | 2026-09-07 | API + web + tests |
 | 5 | Activities & Tasks (timeline) | ✅ Done | 2026-09-08 | 2026-09-08 | API + web + tests |
 | 6 | Leads + conversion | ✅ Done | 2026-09-08 | 2026-09-08 | API + web + tests |
-| 7 | Opportunities + Pipeline kanban | ⬜ Not started | — | — | — |
-| 8 | Search + CSV import/export | ⬜ Not started | — | — | — |
+| 7 | Opportunities + Pipeline kanban | ✅ Done | 2026-09-09 | 2026-09-09 | API + web + tests |
+| 8 | Search + CSV import/export | ✅ Done | 2026-09-09 | 2026-09-09 | API + web + tests |
 | 9 | Dashboards & reports | ⬜ Not started | — | — | — |
 | 10 | Hardening + P3 triage | ⬜ Not started | — | — | — |
 
@@ -210,7 +210,65 @@ re-derived from the token on every single request by
 
 ---
 
-## Sprints 7–10 ⬜
+## Sprint 7 — Opportunities + Pipeline Kanban ✅ (Milestone ★ P1)
+
+**Goal:** Opportunities CRUD, stage transition history with timestamps & days-in-stage, mandatory loss reason on Closed Lost, weighted forecasting summary, and interactive drag-and-drop Pipeline Kanban board. **Achieves Milestone ★ P1: the complete sales loop: Lead → Convert → Opportunity → Pipeline → Close.**
+
+- [x] Default B2B pipeline and stages provisioned on tenant setup
+- [x] Stage transition history logged with timestamps, actors, and days in stage
+- [x] Moving to Closed Lost strictly requires a non-empty `loss_reason` (HTTP 422 if empty/whitespace)
+- [x] Summary metrics calculate total pipeline value and probability-weighted forecast
+- [x] Interactive Kanban board with optimistic drag-and-drop and rollback on failure
+- [x] Pipeline stage configuration admin (`/settings/pipeline`) with add, rename, reorder, delete (409 conflict guard)
+- [x] Lead conversion seamlessly creates an opportunity in the first pipeline stage
+- [x] 104/104 backend tests passing with full tenant isolation and RBAC verification
+
+**Shipped**
+
+| Layer | What |
+|---|---|
+| Backend | `pipelines` module: models (`Pipeline`, `PipelineStage`), default stage seeding, schemas, repository, service, router (`/pipelines`, `/pipelines/{id}/stages`, `/stages/reorder`) |
+| Backend | `opportunities` module: models (`Opportunity`, `OpportunityStageHistory`), CRUD, stage movement, `/won`, `/lost`, `/summary` metrics calculation |
+| Migration | `0008_pipelines_and_opportunities.py` creating `pipelines`, `pipeline_stages`, `opportunities`, `opportunity_stage_history` tables |
+| Audit | Audit actions: `opportunity.created`, `opportunity.updated`, `opportunity.deleted`, `opportunity.stage_moved`, `opportunity.won`, `opportunity.lost`, `pipeline.created`, `pipeline.stage_reordered` |
+| Scripts | `scripts/seed_data.py` seeds default pipeline with 6 stages and 6 realistic opportunities |
+| Frontend | `/opportunities` table view with stage/status filter, search, pagination, sort, create/edit modals |
+| Frontend | `/opportunities/[id]` detail view with stage timeline history, days-in-stage metrics, quick actions |
+| Frontend | `/pipeline` visual Kanban board with `@dnd-kit` drag-and-drop, optimistic UI updates, and real-time forecasting metrics bar |
+| Frontend | `/settings/pipeline` stage configuration page to add, edit, reorder, and delete stages |
+| Frontend | Lead conversion dialog updated to optionally create an Opportunity directly during qualification |
+| Frontend | Mock store and handlers parity for `NEXT_PUBLIC_USE_MOCK_API=true` |
+| Navigation | `CURRENT_SPRINT = 7` unlocks Opportunities, Pipeline, and Pipeline Stages navigation items |
+| Tests | `tests/integration/test_pipelines.py` and `tests/integration/test_opportunities.py` |
+
+---
+
+## Sprint 8 — Search + CSV import/export ✅
+
+**Goal:** Global search box across all entities; CSV import with column mapping + per-row error report; permission-safe CSV export from list pages.
+
+- [x] Global search box across Accounts, Contacts, Leads, Opportunities (Cmd+K modal & `/search` page)
+- [x] Multi-step CSV import wizard with auto header detection, custom column mapping, and per-row error summary
+- [x] Permission-safe CSV export on Accounts, Contacts, Leads, and Opportunities tables
+- [x] Audit actions logged for import execution and data exports
+- [x] All 98 backend integration and unit tests passing
+
+**Shipped**
+
+| Layer | What |
+|---|---|
+| Backend | `search` module: `SearchService` for cross-entity ILIKE search, `SearchResponse`, `/api/v1/search` endpoint |
+| Backend | `data_ops` module: CSV preview, field options, transactional contact import, CSV export generators (`/api/v1/data-ops/*`) |
+| Audit | `search:read`, `imports:write`, `exports:read` RBAC permissions and audit trail logging |
+| Frontend | Global `SearchCommand` modal (Cmd+K / Ctrl+K), dedicated `/search` page with entity filters |
+| Frontend | `/imports` page featuring multi-step `ImportWizard` (CSV upload → column mapping → batch import → error log) |
+| Frontend | `ExportButton` added to Accounts, Contacts, Leads, and Opportunities tables |
+| Navigation | `CURRENT_SPRINT = 8` unlocks Imports navigation item |
+| Tests | `tests/integration/test_search.py` and `tests/integration/test_data_ops.py` |
+
+---
+
+## Sprints 9–10 ⬜
 
 Not started. Scope, learning goals and DoD live in
 [CRM_SPRINT_PLAN.md](./CRM_SPRINT_PLAN.md); this file gets a section per sprint

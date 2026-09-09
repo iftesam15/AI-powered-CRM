@@ -40,6 +40,25 @@ class AuditAction(StrEnum):
     LEAD_DELETED = "lead.deleted"
     LEAD_CONVERTED = "lead.converted"
 
+    # Opportunity administration
+    OPPORTUNITY_CREATED = "opportunity.created"
+    OPPORTUNITY_UPDATED = "opportunity.updated"
+    OPPORTUNITY_DELETED = "opportunity.deleted"
+    OPPORTUNITY_STAGE_CHANGED = "opportunity.stage_changed"
+    OPPORTUNITY_WON = "opportunity.won"
+    OPPORTUNITY_LOST = "opportunity.lost"
+
+    # Pipeline administration
+    PIPELINE_CREATED = "pipeline.created"
+    PIPELINE_UPDATED = "pipeline.updated"
+    STAGE_CREATED = "pipeline_stage.created"
+    STAGE_UPDATED = "pipeline_stage.updated"
+    STAGE_DELETED = "pipeline_stage.deleted"
+
+    # Data operations
+    IMPORT_COMPLETED = "data.import_completed"
+    EXPORT_COMPLETED = "data.export_completed"
+
 
 class AuditEntity(StrEnum):
     USER = "user"
@@ -48,6 +67,9 @@ class AuditEntity(StrEnum):
     CONTACT = "contact"
     LEAD = "lead"
     OPPORTUNITY = "opportunity"
+    PIPELINE = "pipeline"
+    PIPELINE_STAGE = "pipeline_stage"
+    DATA_OPS = "data_ops"
 
 
 #: Actions an administrator most often filters by, surfaced in the UI dropdown.

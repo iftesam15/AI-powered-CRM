@@ -134,12 +134,73 @@ export interface MockLead {
   updatedAt: number;
 }
 
+export interface MockPipelineStage {
+  id: string;
+  tenantId: string;
+  pipelineId: string;
+  name: string;
+  displayOrder: number;
+  probability: number;
+  isWon: boolean;
+  isLost: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface MockPipeline {
+  id: string;
+  tenantId: string;
+  name: string;
+  isDefault: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface MockOpportunityStageHistory {
+  id: string;
+  tenantId: string;
+  opportunityId: string;
+  fromStageId: string | null;
+  toStageId: string;
+  changedById: string | null;
+  daysInStage: number | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface MockOpportunity {
+  id: string;
+  tenantId: string;
+  name: string;
+  amount: number;
+  currency: string;
+  pipelineId: string;
+  stageId: string;
+  accountId: string | null;
+  primaryContactId: string | null;
+  ownerId: string | null;
+  leadId: string | null;
+  expectedCloseDate: string | null;
+  probability: number;
+  status: "open" | "won" | "lost";
+  lossReason: string | null;
+  wonAt: number | null;
+  lostAt: number | null;
+  notes: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
 interface MockDatabase {
   tenants: Map<string, SessionTenant>;
   users: Map<string, MockUser>;
   accounts: Map<string, MockAccount>;
   contacts: Map<string, MockContact>;
   leads: Map<string, MockLead>;
+  pipelines: Map<string, MockPipeline>;
+  pipelineStages: Map<string, MockPipelineStage>;
+  opportunities: Map<string, MockOpportunity>;
+  opportunityStageHistory: MockOpportunityStageHistory[];
   activities: Map<string, MockActivity>;
   tasks: Map<string, MockTask>;
   resetTokens: Map<string, ResetToken>;
@@ -481,12 +542,221 @@ function seed(): MockDatabase {
     ],
   ]);
 
+  const PIPELINE_ID = "pipe-1";
+  const STAGES = [
+    { id: "stg-1", name: "Qualification", displayOrder: 1, probability: 10, isWon: false, isLost: false },
+    { id: "stg-2", name: "Discovery", displayOrder: 2, probability: 30, isWon: false, isLost: false },
+    { id: "stg-3", name: "Proposal", displayOrder: 3, probability: 60, isWon: false, isLost: false },
+    { id: "stg-4", name: "Negotiation", displayOrder: 4, probability: 80, isWon: false, isLost: false },
+    { id: "stg-5", name: "Closed Won", displayOrder: 5, probability: 100, isWon: true, isLost: false },
+    { id: "stg-6", name: "Closed Lost", displayOrder: 6, probability: 0, isWon: false, isLost: true },
+  ];
+
+  const pipelines = new Map<string, MockPipeline>([
+    [
+      PIPELINE_ID,
+      {
+        id: PIPELINE_ID,
+        tenantId: TENANT_ID,
+        name: "Standard Sales Pipeline",
+        isDefault: true,
+        createdAt: now - 30 * DAY,
+        updatedAt: now - 30 * DAY,
+      },
+    ],
+  ]);
+
+  const pipelineStages = new Map<string, MockPipelineStage>();
+  for (const s of STAGES) {
+    pipelineStages.set(s.id, {
+      id: s.id,
+      tenantId: TENANT_ID,
+      pipelineId: PIPELINE_ID,
+      name: s.name,
+      displayOrder: s.displayOrder,
+      probability: s.probability,
+      isWon: s.isWon,
+      isLost: s.isLost,
+      createdAt: now - 30 * DAY,
+      updatedAt: now - 30 * DAY,
+    });
+  }
+
+  const opportunities = new Map<string, MockOpportunity>([
+    [
+      "opp-1",
+      {
+        id: "opp-1",
+        tenantId: TENANT_ID,
+        name: "Midwest Fleet Expansion Deal",
+        amount: 45000,
+        currency: "USD",
+        pipelineId: PIPELINE_ID,
+        stageId: "stg-1",
+        accountId: "acc-1",
+        primaryContactId: "cnt-1",
+        ownerId: REP_ID,
+        leadId: null,
+        expectedCloseDate: "2026-10-15",
+        probability: 10,
+        status: "open",
+        lossReason: null,
+        wonAt: null,
+        lostAt: null,
+        notes: "Initial interest in adding 12 dry van routes.",
+        createdAt: now - 14 * DAY,
+        updatedAt: now - 14 * DAY,
+      },
+    ],
+    [
+      "opp-2",
+      {
+        id: "opp-2",
+        tenantId: TENANT_ID,
+        name: "Cold-Chain Reefer Fleet Upgrade",
+        amount: 82000,
+        currency: "USD",
+        pipelineId: PIPELINE_ID,
+        stageId: "stg-2",
+        accountId: "acc-2",
+        primaryContactId: "cnt-3",
+        ownerId: ADMIN_ID,
+        leadId: null,
+        expectedCloseDate: "2026-11-01",
+        probability: 30,
+        status: "open",
+        lossReason: null,
+        wonAt: null,
+        lostAt: null,
+        notes: "Technical specs reviewed; temperature-controlled monitoring required.",
+        createdAt: now - 10 * DAY,
+        updatedAt: now - 8 * DAY,
+      },
+    ],
+    [
+      "opp-3",
+      {
+        id: "opp-3",
+        tenantId: TENANT_ID,
+        name: "Pacific Northwest Regional Contract",
+        amount: 120000,
+        currency: "USD",
+        pipelineId: PIPELINE_ID,
+        stageId: "stg-3",
+        accountId: "acc-1",
+        primaryContactId: "cnt-2",
+        ownerId: MANAGER_ID,
+        leadId: null,
+        expectedCloseDate: "2026-10-30",
+        probability: 60,
+        status: "open",
+        lossReason: null,
+        wonAt: null,
+        lostAt: null,
+        notes: "Formal proposal submitted for 3-year term.",
+        createdAt: now - 8 * DAY,
+        updatedAt: now - 4 * DAY,
+      },
+    ],
+    [
+      "opp-4",
+      {
+        id: "opp-4",
+        tenantId: TENANT_ID,
+        name: "Enterprise GPS Telematics Rollout",
+        amount: 65000,
+        currency: "USD",
+        pipelineId: PIPELINE_ID,
+        stageId: "stg-4",
+        accountId: "acc-5",
+        primaryContactId: "cnt-4",
+        ownerId: REP_ID,
+        leadId: null,
+        expectedCloseDate: "2026-09-25",
+        probability: 80,
+        status: "open",
+        lossReason: null,
+        wonAt: null,
+        lostAt: null,
+        notes: "Contract final review with legal and operations.",
+        createdAt: now - 6 * DAY,
+        updatedAt: now - 2 * DAY,
+      },
+    ],
+    [
+      "opp-5",
+      {
+        id: "opp-5",
+        tenantId: TENANT_ID,
+        name: "Q2 Dedicated Lanes Contract",
+        amount: 95000,
+        currency: "USD",
+        pipelineId: PIPELINE_ID,
+        stageId: "stg-5",
+        accountId: "acc-2",
+        primaryContactId: "cnt-3",
+        ownerId: ADMIN_ID,
+        leadId: null,
+        expectedCloseDate: "2026-08-30",
+        probability: 100,
+        status: "won",
+        lossReason: null,
+        wonAt: now - 3 * DAY,
+        lostAt: null,
+        notes: "Signed and executed.",
+        createdAt: now - 20 * DAY,
+        updatedAt: now - 3 * DAY,
+      },
+    ],
+    [
+      "opp-6",
+      {
+        id: "opp-6",
+        tenantId: TENANT_ID,
+        name: "Spot Brokerage Integration",
+        amount: 30000,
+        currency: "USD",
+        pipelineId: PIPELINE_ID,
+        stageId: "stg-6",
+        accountId: "acc-1",
+        primaryContactId: "cnt-1",
+        ownerId: REP_ID,
+        leadId: null,
+        expectedCloseDate: "2026-08-15",
+        probability: 0,
+        status: "lost",
+        lossReason: "Competitor undercut rate by 18% on spot margin.",
+        wonAt: null,
+        lostAt: now - 5 * DAY,
+        notes: "Re-evaluate during annual RFP cycle.",
+        createdAt: now - 25 * DAY,
+        updatedAt: now - 5 * DAY,
+      },
+    ],
+  ]);
+
+  const opportunityStageHistory: MockOpportunityStageHistory[] = [
+    { id: "h-1", tenantId: TENANT_ID, opportunityId: "opp-1", fromStageId: null, toStageId: "stg-1", changedById: REP_ID, daysInStage: 0, createdAt: now - 14 * DAY, updatedAt: now - 14 * DAY },
+    { id: "h-2", tenantId: TENANT_ID, opportunityId: "opp-2", fromStageId: null, toStageId: "stg-1", changedById: ADMIN_ID, daysInStage: 2, createdAt: now - 10 * DAY, updatedAt: now - 10 * DAY },
+    { id: "h-3", tenantId: TENANT_ID, opportunityId: "opp-2", fromStageId: "stg-1", toStageId: "stg-2", changedById: ADMIN_ID, daysInStage: 0, createdAt: now - 8 * DAY, updatedAt: now - 8 * DAY },
+    { id: "h-4", tenantId: TENANT_ID, opportunityId: "opp-3", fromStageId: null, toStageId: "stg-1", changedById: MANAGER_ID, daysInStage: 3, createdAt: now - 8 * DAY, updatedAt: now - 8 * DAY },
+    { id: "h-5", tenantId: TENANT_ID, opportunityId: "opp-3", fromStageId: "stg-1", toStageId: "stg-3", changedById: MANAGER_ID, daysInStage: 0, createdAt: now - 4 * DAY, updatedAt: now - 4 * DAY },
+    { id: "h-6", tenantId: TENANT_ID, opportunityId: "opp-4", fromStageId: null, toStageId: "stg-1", changedById: REP_ID, daysInStage: 4, createdAt: now - 6 * DAY, updatedAt: now - 6 * DAY },
+    { id: "h-7", tenantId: TENANT_ID, opportunityId: "opp-4", fromStageId: "stg-1", toStageId: "stg-4", changedById: REP_ID, daysInStage: 0, createdAt: now - 2 * DAY, updatedAt: now - 2 * DAY },
+    { id: "h-8", tenantId: TENANT_ID, opportunityId: "opp-5", fromStageId: "stg-4", toStageId: "stg-5", changedById: ADMIN_ID, daysInStage: 0, createdAt: now - 3 * DAY, updatedAt: now - 3 * DAY },
+    { id: "h-9", tenantId: TENANT_ID, opportunityId: "opp-6", fromStageId: "stg-2", toStageId: "stg-6", changedById: REP_ID, daysInStage: 0, createdAt: now - 5 * DAY, updatedAt: now - 5 * DAY },
+  ];
+
   return {
     tenants,
     users,
     accounts,
     contacts,
     leads,
+    pipelines,
+    pipelineStages,
+    opportunities,
+    opportunityStageHistory,
     activities,
     tasks,
     resetTokens: new Map(),
@@ -501,8 +771,8 @@ function seed(): MockDatabase {
  * counters, reset tokens and audit trail on every file save. The key carries a
  * version so a changed store shape does not read back a stale object.
  */
-const globalStore = globalThis as unknown as { __crmMockDbV2?: MockDatabase };
-const db: MockDatabase = (globalStore.__crmMockDbV2 ??= seed());
+const globalStore = globalThis as unknown as { __crmMockDbV3?: MockDatabase };
+const db: MockDatabase = (globalStore.__crmMockDbV3 ??= seed());
 
 function toSession(user: MockUser): Session {
   const tenant = db.tenants.get(user.tenantId);
@@ -1142,8 +1412,10 @@ export function mockListContacts(
 
   const sortKey = query?.sort ?? "lastName";
   items.sort((a, b) => {
-    let aVal: any = (a as any)[sortKey] ?? "";
-    let bVal: any = (b as any)[sortKey] ?? "";
+    const aRecord = a as unknown as Record<string, unknown>;
+    const bRecord = b as unknown as Record<string, unknown>;
+    let aVal = aRecord[sortKey] ?? "";
+    let bVal = bRecord[sortKey] ?? "";
     if (typeof aVal === "string") aVal = aVal.toLowerCase();
     if (typeof bVal === "string") bVal = bVal.toLowerCase();
 
@@ -2133,6 +2405,8 @@ export function mockConvertLead(
     create_account?: boolean;
     account_id?: string | null;
     account_name?: string | null;
+    opportunity_name?: string | null;
+    opportunity_amount?: number | string | null;
   },
 ) {
   const actor = db.users.get(actorId);
@@ -2211,13 +2485,46 @@ export function mockConvertLead(
     changes: null,
   });
 
-  // 3. Update Lead
+  // 3. Optional Opportunity Creation
+  let targetOpportunityId: string | null = null;
+  if (options.opportunity_name && options.opportunity_name.trim()) {
+    const oppName = options.opportunity_name.trim();
+    const defaultPipe = mockGetDefaultPipeline(actor.tenantId);
+    const stages = defaultPipe ? defaultPipe.stages : [];
+    const firstStage = stages[0];
+    if (defaultPipe && firstStage) {
+      const oppRes = mockCreateOpportunity(actor.id, {
+        name: oppName,
+        amount: options.opportunity_amount ?? 0,
+        pipeline_id: defaultPipe.id,
+        stage_id: firstStage.id,
+        account_id: targetAccountId,
+        primary_contact_id: contactId,
+        owner_id: lead.ownerId || actor.id,
+        lead_id: lead.id,
+      });
+      if (oppRes.kind === "ok") {
+        targetOpportunityId = oppRes.opportunity.id;
+      }
+    }
+  }
+
+  // 4. Update Lead
   lead.status = "converted";
   lead.isConverted = true;
   lead.convertedAt = now;
   lead.convertedContactId = contactId;
   lead.convertedAccountId = targetAccountId;
+  lead.convertedOpportunityId = targetOpportunityId;
   lead.updatedAt = now;
+
+  let summary = `Converted lead ${lead.firstName} ${lead.lastName} to contact`;
+  if (options.create_account || options.account_name || lead.companyName) {
+    summary += " and created account";
+  }
+  if (targetOpportunityId) {
+    summary += ` and created opportunity '${options.opportunity_name?.trim()}'`;
+  }
 
   record({
     tenantId: actor.tenantId,
@@ -2225,7 +2532,7 @@ export function mockConvertLead(
     action: "lead.converted",
     entityType: "lead",
     entityId: lead.id,
-    summary: `Converted lead ${lead.firstName} ${lead.lastName} to contact`,
+    summary,
     changes: null,
   });
 
@@ -2235,7 +2542,677 @@ export function mockConvertLead(
       lead: mockGetLead(actor.tenantId, lead.id)!,
       contact_id: contactId,
       account_id: targetAccountId,
+      opportunity_id: targetOpportunityId,
     },
+  };
+}
+
+// --- pipelines & stages -----------------------------------------------------
+
+export function mockListPipelines(tenantId: string) {
+  const pipes = [...db.pipelines.values()].filter((p) => p.tenantId === tenantId);
+  return pipes.map((p) => {
+    const stages = [...db.pipelineStages.values()]
+      .filter((s) => s.tenantId === tenantId && s.pipelineId === p.id)
+      .sort((a, b) => a.displayOrder - b.displayOrder);
+    return {
+      id: p.id,
+      tenant_id: p.tenantId,
+      name: p.name,
+      is_default: p.isDefault,
+      stages: stages.map(serialiseStage),
+      created_at: new Date(p.createdAt).toISOString(),
+      updated_at: new Date(p.updatedAt).toISOString(),
+    };
+  });
+}
+
+export function mockGetDefaultPipeline(tenantId: string) {
+  const pipes = mockListPipelines(tenantId);
+  return pipes.find((p) => p.is_default) || pipes[0] || null;
+}
+
+export function mockGetPipeline(tenantId: string, pipelineId: string) {
+  const pipes = mockListPipelines(tenantId);
+  return pipes.find((p) => p.id === pipelineId) || null;
+}
+
+function serialiseStage(s: MockPipelineStage) {
+  return {
+    id: s.id,
+    tenant_id: s.tenantId,
+    pipeline_id: s.pipelineId,
+    name: s.name,
+    display_order: s.displayOrder,
+    probability: s.probability,
+    is_won: s.isWon,
+    is_lost: s.isLost,
+    created_at: new Date(s.createdAt).toISOString(),
+    updated_at: new Date(s.updatedAt).toISOString(),
+  };
+}
+
+export function mockCreateStage(
+  actorId: string,
+  pipelineId: string,
+  payload: {
+    name: string;
+    display_order?: number;
+    probability?: number;
+    is_won?: boolean;
+    is_lost?: boolean;
+  },
+) {
+  const actor = db.users.get(actorId);
+  if (!actor) return { kind: "forbidden" as const };
+  const pipeline = db.pipelines.get(pipelineId);
+  if (!pipeline || pipeline.tenantId !== actor.tenantId) return { kind: "forbidden" as const };
+
+  const now = Date.now();
+  const stages = [...db.pipelineStages.values()].filter((s) => s.pipelineId === pipelineId);
+  const maxOrder = Math.max(0, ...stages.map((s) => s.displayOrder));
+  const order = typeof payload.display_order === "number" ? payload.display_order : maxOrder + 1;
+
+  const stageId = randomUUID();
+  const newStage: MockPipelineStage = {
+    id: stageId,
+    tenantId: actor.tenantId,
+    pipelineId,
+    name: payload.name.trim(),
+    displayOrder: order,
+    probability: payload.probability ?? 0,
+    isWon: !!payload.is_won,
+    isLost: !!payload.is_lost,
+    createdAt: now,
+    updatedAt: now,
+  };
+  db.pipelineStages.set(stageId, newStage);
+
+  record({
+    tenantId: actor.tenantId,
+    actor,
+    action: "pipeline_stage.created",
+    entityType: "pipeline_stage",
+    entityId: stageId,
+    summary: `Created stage '${newStage.name}' in pipeline '${pipeline.name}'`,
+  });
+
+  return { kind: "ok" as const, stage: serialiseStage(newStage) };
+}
+
+export function mockUpdateStage(
+  actorId: string,
+  pipelineId: string,
+  stageId: string,
+  payload: {
+    name?: string;
+    display_order?: number;
+    probability?: number;
+    is_won?: boolean;
+    is_lost?: boolean;
+  },
+) {
+  const actor = db.users.get(actorId);
+  if (!actor) return { kind: "forbidden" as const };
+  const stage = db.pipelineStages.get(stageId);
+  if (!stage || stage.tenantId !== actor.tenantId || stage.pipelineId !== pipelineId) {
+    return { kind: "forbidden" as const };
+  }
+
+  if (payload.name !== undefined) stage.name = payload.name.trim();
+  if (payload.display_order !== undefined) stage.displayOrder = payload.display_order;
+  if (payload.probability !== undefined) stage.probability = payload.probability;
+  if (payload.is_won !== undefined) stage.isWon = payload.is_won;
+  if (payload.is_lost !== undefined) stage.isLost = payload.is_lost;
+  stage.updatedAt = Date.now();
+
+  record({
+    tenantId: actor.tenantId,
+    actor,
+    action: "pipeline_stage.updated",
+    entityType: "pipeline_stage",
+    entityId: stageId,
+    summary: `Updated stage '${stage.name}'`,
+  });
+
+  return { kind: "ok" as const, stage: serialiseStage(stage) };
+}
+
+export function mockDeleteStage(actorId: string, pipelineId: string, stageId: string) {
+  const actor = db.users.get(actorId);
+  if (!actor) return { kind: "forbidden" as const };
+  const stage = db.pipelineStages.get(stageId);
+  if (!stage || stage.tenantId !== actor.tenantId || stage.pipelineId !== pipelineId) {
+    return { kind: "forbidden" as const };
+  }
+
+  // Check if any opportunity is in this stage
+  const oppsInStage = [...db.opportunities.values()].filter((o) => o.stageId === stageId && o.tenantId === actor.tenantId);
+  if (oppsInStage.length > 0) {
+    return { kind: "conflict" as const, detail: `Cannot delete stage with ${oppsInStage.length} opportunities.` };
+  }
+
+  db.pipelineStages.delete(stageId);
+
+  record({
+    tenantId: actor.tenantId,
+    actor,
+    action: "pipeline_stage.deleted",
+    entityType: "pipeline_stage",
+    entityId: stageId,
+    summary: `Deleted stage '${stage.name}'`,
+  });
+
+  return { kind: "ok" as const };
+}
+
+export function mockReorderStages(
+  actorId: string,
+  pipelineId: string,
+  stages: Array<{ id: string; display_order: number }>,
+) {
+  const actor = db.users.get(actorId);
+  if (!actor) return { kind: "forbidden" as const };
+
+  for (const item of stages) {
+    const s = db.pipelineStages.get(item.id);
+    if (s && s.tenantId === actor.tenantId && s.pipelineId === pipelineId) {
+      s.displayOrder = item.display_order;
+      s.updatedAt = Date.now();
+    }
+  }
+
+  const updatedStages = [...db.pipelineStages.values()]
+    .filter((s) => s.tenantId === actor.tenantId && s.pipelineId === pipelineId)
+    .sort((a, b) => a.displayOrder - b.displayOrder);
+
+  record({
+    tenantId: actor.tenantId,
+    actor,
+    action: "pipeline.updated",
+    entityType: "pipeline",
+    entityId: pipelineId,
+    summary: "Reordered pipeline stages",
+  });
+
+  return { kind: "ok" as const, stages: updatedStages.map(serialiseStage) };
+}
+
+// --- opportunities ---------------------------------------------------------
+
+function serialiseOpportunity(opp: MockOpportunity) {
+  const pipeline = db.pipelines.get(opp.pipelineId);
+  const stage = db.pipelineStages.get(opp.stageId);
+  const account = opp.accountId ? db.accounts.get(opp.accountId) : null;
+  const contact = opp.primaryContactId ? db.contacts.get(opp.primaryContactId) : null;
+  const owner = opp.ownerId ? db.users.get(opp.ownerId) : null;
+
+  const history = db.opportunityStageHistory
+    .filter((h) => h.opportunityId === opp.id)
+    .sort((a, b) => a.createdAt - b.createdAt)
+    .map((h) => {
+      const fromStg = h.fromStageId ? db.pipelineStages.get(h.fromStageId) : null;
+      const toStg = db.pipelineStages.get(h.toStageId);
+      const user = h.changedById ? db.users.get(h.changedById) : null;
+      return {
+        id: h.id,
+        opportunity_id: h.opportunityId,
+        from_stage_id: h.fromStageId,
+        from_stage_name: fromStg?.name ?? null,
+        to_stage_id: h.toStageId,
+        to_stage_name: toStg?.name ?? null,
+        changed_by_id: h.changedById,
+        changed_by_name: user?.fullName ?? null,
+        days_in_stage: h.daysInStage,
+        created_at: new Date(h.createdAt).toISOString(),
+      };
+    });
+
+  const weighted = Number(((opp.amount * opp.probability) / 100).toFixed(2));
+
+  return {
+    id: opp.id,
+    tenant_id: opp.tenantId,
+    name: opp.name,
+    amount: opp.amount.toFixed(2),
+    currency: opp.currency,
+    pipeline_id: opp.pipelineId,
+    pipeline_name: pipeline?.name ?? null,
+    stage_id: opp.stageId,
+    stage_name: stage?.name ?? null,
+    account_id: opp.accountId,
+    account_name: account?.name ?? null,
+    primary_contact_id: opp.primaryContactId,
+    primary_contact_name: contact ? `${contact.firstName} ${contact.lastName}` : null,
+    owner_id: opp.ownerId,
+    owner_name: owner?.fullName ?? null,
+    lead_id: opp.leadId,
+    expected_close_date: opp.expectedCloseDate,
+    probability: opp.probability,
+    weighted_amount: weighted.toFixed(2),
+    status: opp.status,
+    loss_reason: opp.lossReason,
+    won_at: opp.wonAt ? new Date(opp.wonAt).toISOString() : null,
+    lost_at: opp.lostAt ? new Date(opp.lostAt).toISOString() : null,
+    notes: opp.notes,
+    stage_history: history,
+    created_at: new Date(opp.createdAt).toISOString(),
+    updated_at: new Date(opp.updatedAt).toISOString(),
+  };
+}
+
+export function mockListOpportunities(
+  tenantId: string,
+  query: {
+    q?: string;
+    pipeline_id?: string;
+    stage_id?: string;
+    status?: string;
+    owner_id?: string;
+    account_id?: string;
+    sort?: string;
+    order?: "asc" | "desc";
+    limit?: number;
+    offset?: number;
+  },
+) {
+  let matches = [...db.opportunities.values()].filter((o) => o.tenantId === tenantId);
+
+  if (query.q && query.q.trim()) {
+    const term = query.q.trim().toLowerCase();
+    matches = matches.filter((o) => o.name.toLowerCase().includes(term) || (o.notes && o.notes.toLowerCase().includes(term)));
+  }
+  if (query.pipeline_id) {
+    matches = matches.filter((o) => o.pipelineId === query.pipeline_id);
+  }
+  if (query.stage_id) {
+    matches = matches.filter((o) => o.stageId === query.stage_id);
+  }
+  if (query.status) {
+    matches = matches.filter((o) => o.status === query.status);
+  }
+  if (query.owner_id) {
+    matches = matches.filter((o) => o.ownerId === query.owner_id);
+  }
+  if (query.account_id) {
+    matches = matches.filter((o) => o.accountId === query.account_id);
+  }
+
+  const orderDir = query.order === "asc" ? 1 : -1;
+  matches.sort((a, b) => {
+    if (query.sort === "amount") return (a.amount - b.amount) * orderDir;
+    if (query.sort === "name") return a.name.localeCompare(b.name) * orderDir;
+    if (query.sort === "probability") return (a.probability - b.probability) * orderDir;
+    return (a.createdAt - b.createdAt) * orderDir;
+  });
+
+  const limit = query.limit ?? 50;
+  const offset = query.offset ?? 0;
+  const items = matches.slice(offset, offset + limit).map(serialiseOpportunity);
+
+  return {
+    items,
+    total: matches.length,
+    limit,
+    offset,
+  };
+}
+
+export function mockGetOpportunity(tenantId: string, oppId: string) {
+  const opp = db.opportunities.get(oppId);
+  if (!opp || opp.tenantId !== tenantId) return null;
+  return serialiseOpportunity(opp);
+}
+
+export function mockCreateOpportunity(
+  actorId: string,
+  payload: {
+    name: string;
+    amount?: number | string;
+    currency?: string;
+    pipeline_id?: string;
+    stage_id?: string;
+    account_id?: string | null;
+    primary_contact_id?: string | null;
+    owner_id?: string | null;
+    lead_id?: string | null;
+    expected_close_date?: string | null;
+    probability?: number;
+    notes?: string | null;
+  },
+) {
+  const actor = db.users.get(actorId);
+  if (!actor) return { kind: "forbidden" as const, detail: "Access denied." };
+
+  const defaultPipe = mockGetDefaultPipeline(actor.tenantId);
+  const pipelineId = payload.pipeline_id || defaultPipe?.id;
+  if (!pipelineId) return { kind: "invalid" as const, detail: "Pipeline not found." };
+
+  const pipeline = db.pipelines.get(pipelineId);
+  if (!pipeline || pipeline.tenantId !== actor.tenantId) return { kind: "forbidden" as const, detail: "Pipeline access denied." };
+
+  const stages = [...db.pipelineStages.values()]
+    .filter((s) => s.pipelineId === pipelineId)
+    .sort((a, b) => a.displayOrder - b.displayOrder);
+
+  if (stages.length === 0) return { kind: "invalid" as const, detail: "Pipeline has no stages." };
+
+  const stage = payload.stage_id ? stages.find((s) => s.id === payload.stage_id) : stages[0];
+  if (!stage) return { kind: "invalid" as const, detail: "Stage not found in pipeline." };
+
+  const now = Date.now();
+  const oppId = randomUUID();
+  const numAmount = typeof payload.amount === "string" ? parseFloat(payload.amount) || 0 : payload.amount ?? 0;
+  const prob = typeof payload.probability === "number" ? payload.probability : stage.probability;
+
+  let statusVal: "open" | "won" | "lost" = "open";
+  let wonAt: number | null = null;
+  if (stage.isWon) {
+    statusVal = "won";
+    wonAt = now;
+  }
+
+  const opp: MockOpportunity = {
+    id: oppId,
+    tenantId: actor.tenantId,
+    name: payload.name.trim(),
+    amount: numAmount,
+    currency: payload.currency?.toUpperCase() || "USD",
+    pipelineId,
+    stageId: stage.id,
+    accountId: payload.account_id ?? null,
+    primaryContactId: payload.primary_contact_id ?? null,
+    ownerId: payload.owner_id ?? actor.id,
+    leadId: payload.lead_id ?? null,
+    expectedCloseDate: payload.expected_close_date ?? null,
+    probability: prob,
+    status: statusVal,
+    lossReason: null,
+    wonAt,
+    lostAt: null,
+    notes: payload.notes ?? null,
+    createdAt: now,
+    updatedAt: now,
+  };
+  db.opportunities.set(oppId, opp);
+
+  // Initial stage entry
+  db.opportunityStageHistory.push({
+    id: randomUUID(),
+    tenantId: actor.tenantId,
+    opportunityId: oppId,
+    fromStageId: null,
+    toStageId: stage.id,
+    changedById: actor.id,
+    daysInStage: 0,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  record({
+    tenantId: actor.tenantId,
+    actor,
+    action: "opportunity.created",
+    entityType: "opportunity",
+    entityId: oppId,
+    summary: `Created opportunity '${opp.name}'`,
+  });
+
+  return { kind: "ok" as const, opportunity: serialiseOpportunity(opp) };
+}
+
+export function mockUpdateOpportunity(
+  actorId: string,
+  oppId: string,
+  payload: {
+    name?: string;
+    amount?: number | string;
+    currency?: string;
+    stage_id?: string;
+    account_id?: string | null;
+    primary_contact_id?: string | null;
+    owner_id?: string | null;
+    expected_close_date?: string | null;
+    probability?: number;
+    notes?: string | null;
+    loss_reason?: string | null;
+  },
+) {
+  const actor = db.users.get(actorId);
+  if (!actor) return { kind: "forbidden" as const, detail: "Access denied." };
+  const opp = db.opportunities.get(oppId);
+  if (!opp || opp.tenantId !== actor.tenantId) return { kind: "forbidden" as const, detail: "Opportunity access denied." };
+
+  if (payload.stage_id && payload.stage_id !== opp.stageId) {
+    const moveRes = mockMoveOpportunityStage(actorId, oppId, payload.stage_id, payload.loss_reason);
+    if (moveRes.kind !== "ok") return moveRes;
+  }
+
+  if (payload.name !== undefined) opp.name = payload.name.trim();
+  if (payload.amount !== undefined) {
+    opp.amount = typeof payload.amount === "string" ? parseFloat(payload.amount) || 0 : payload.amount;
+  }
+  if (payload.currency !== undefined) opp.currency = payload.currency.toUpperCase();
+  if (payload.account_id !== undefined) opp.accountId = payload.account_id;
+  if (payload.primary_contact_id !== undefined) opp.primaryContactId = payload.primary_contact_id;
+  if (payload.owner_id !== undefined) opp.ownerId = payload.owner_id;
+  if (payload.expected_close_date !== undefined) opp.expectedCloseDate = payload.expected_close_date;
+  if (payload.probability !== undefined) opp.probability = payload.probability;
+  if (payload.notes !== undefined) opp.notes = payload.notes;
+  opp.updatedAt = Date.now();
+
+  record({
+    tenantId: actor.tenantId,
+    actor,
+    action: "opportunity.updated",
+    entityType: "opportunity",
+    entityId: oppId,
+    summary: `Updated opportunity '${opp.name}'`,
+  });
+
+  return { kind: "ok" as const, opportunity: serialiseOpportunity(opp) };
+}
+
+export function mockMoveOpportunityStage(
+  actorId: string,
+  oppId: string,
+  stageId: string,
+  lossReason?: string | null,
+) {
+  const actor = db.users.get(actorId);
+  if (!actor) return { kind: "forbidden" as const, detail: "Access denied." };
+  const opp = db.opportunities.get(oppId);
+  if (!opp || opp.tenantId !== actor.tenantId) return { kind: "forbidden" as const, detail: "Opportunity access denied." };
+
+  const targetStage = db.pipelineStages.get(stageId);
+  if (!targetStage || targetStage.pipelineId !== opp.pipelineId) {
+    return { kind: "invalid" as const, detail: "Target stage not found in pipeline." };
+  }
+
+  if (targetStage.isLost && (!lossReason || !lossReason.trim())) {
+    return { kind: "invalid" as const, detail: "Loss reason is required when moving to Closed Lost." };
+  }
+
+  const oldStageId = opp.stageId;
+  if (oldStageId === stageId) return { kind: "ok" as const, opportunity: serialiseOpportunity(opp) };
+
+  const now = Date.now();
+  const histories = db.opportunityStageHistory.filter((h) => h.opportunityId === oppId).sort((a, b) => b.createdAt - a.createdAt);
+  const prevTime = histories[0]?.createdAt ?? opp.createdAt;
+  const daysInStage = Math.max(0, Math.floor((now - prevTime) / (24 * 60 * 60 * 1000)));
+
+  let action = "opportunity.stage_changed";
+  let summary = `Moved opportunity '${opp.name}' to ${targetStage.name}`;
+
+  if (targetStage.isLost) {
+    opp.status = "lost";
+    opp.lostAt = now;
+    opp.wonAt = null;
+    opp.probability = 0;
+    opp.lossReason = lossReason!.trim();
+    action = "opportunity.lost";
+    summary = `Closed Lost opportunity '${opp.name}': ${opp.lossReason}`;
+  } else if (targetStage.isWon) {
+    opp.status = "won";
+    opp.wonAt = now;
+    opp.lostAt = null;
+    opp.probability = 100;
+    opp.lossReason = null;
+    action = "opportunity.won";
+    summary = `Closed Won opportunity '${opp.name}'`;
+  } else {
+    opp.status = "open";
+    opp.wonAt = null;
+    opp.lostAt = null;
+    opp.lossReason = null;
+    opp.probability = targetStage.probability;
+  }
+
+  opp.stageId = targetStage.id;
+  opp.updatedAt = now;
+
+  db.opportunityStageHistory.push({
+    id: randomUUID(),
+    tenantId: actor.tenantId,
+    opportunityId: oppId,
+    fromStageId: oldStageId,
+    toStageId: targetStage.id,
+    changedById: actor.id,
+    daysInStage,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  record({
+    tenantId: actor.tenantId,
+    actor,
+    action,
+    entityType: "opportunity",
+    entityId: oppId,
+    summary,
+  });
+
+  return { kind: "ok" as const, opportunity: serialiseOpportunity(opp) };
+}
+
+export function mockCloseOpportunityWon(actorId: string, oppId: string, notes?: string | null) {
+  const actor = db.users.get(actorId);
+  if (!actor) return { kind: "forbidden" as const, detail: "Access denied." };
+  const opp = db.opportunities.get(oppId);
+  if (!opp || opp.tenantId !== actor.tenantId) return { kind: "forbidden" as const, detail: "Opportunity access denied." };
+
+  const stages = [...db.pipelineStages.values()].filter((s) => s.pipelineId === opp.pipelineId);
+  const wonStage = stages.find((s) => s.isWon);
+  if (!wonStage) return { kind: "invalid" as const, detail: "No Closed Won stage configured." };
+
+  if (notes) {
+    opp.notes = opp.notes ? `${opp.notes}\n[Won]: ${notes}` : `[Won]: ${notes}`;
+  }
+
+  return mockMoveOpportunityStage(actorId, oppId, wonStage.id);
+}
+
+export function mockCloseOpportunityLost(actorId: string, oppId: string, lossReason: string, notes?: string | null) {
+  const actor = db.users.get(actorId);
+  if (!actor) return { kind: "forbidden" as const, detail: "Access denied." };
+  const opp = db.opportunities.get(oppId);
+  if (!opp || opp.tenantId !== actor.tenantId) return { kind: "forbidden" as const, detail: "Opportunity access denied." };
+
+  if (!lossReason || !lossReason.trim()) {
+    return { kind: "invalid" as const, detail: "Loss reason is required when marking opportunity as Lost." };
+  }
+
+  const stages = [...db.pipelineStages.values()].filter((s) => s.pipelineId === opp.pipelineId);
+  const lostStage = stages.find((s) => s.isLost);
+  if (!lostStage) return { kind: "invalid" as const, detail: "No Closed Lost stage configured." };
+
+  if (notes) {
+    opp.notes = opp.notes ? `${opp.notes}\n[Lost Notes]: ${notes}` : `[Lost Notes]: ${notes}`;
+  }
+
+  return mockMoveOpportunityStage(actorId, oppId, lostStage.id, lossReason);
+}
+
+export function mockDeleteOpportunity(actorId: string, oppId: string) {
+  const actor = db.users.get(actorId);
+  if (!actor) return { kind: "forbidden" as const, detail: "Access denied." };
+  const opp = db.opportunities.get(oppId);
+  if (!opp || opp.tenantId !== actor.tenantId) return { kind: "forbidden" as const, detail: "Opportunity access denied." };
+
+  const name = opp.name;
+  db.opportunities.delete(oppId);
+
+  record({
+    tenantId: actor.tenantId,
+    actor,
+    action: "opportunity.deleted",
+    entityType: "opportunity",
+    entityId: oppId,
+    summary: `Deleted opportunity '${name}'`,
+  });
+
+  return { kind: "ok" as const };
+}
+
+export function mockGetPipelineSummary(tenantId: string, pipelineId?: string | null) {
+  const defaultPipe = mockGetDefaultPipeline(tenantId);
+  const targetPipeId = pipelineId || defaultPipe?.id;
+  if (!targetPipeId) {
+    return {
+      total_opportunities: 0,
+      total_pipeline_value: "0.00",
+      weighted_pipeline_value: "0.00",
+      won_value: "0.00",
+      lost_value: "0.00",
+      stages: [],
+    };
+  }
+
+  const stages = [...db.pipelineStages.values()]
+    .filter((s) => s.pipelineId === targetPipeId && s.tenantId === tenantId)
+    .sort((a, b) => a.displayOrder - b.displayOrder);
+
+  const opps = [...db.opportunities.values()].filter((o) => o.pipelineId === targetPipeId && o.tenantId === tenantId);
+
+  let totalPipelineVal = 0;
+  let weightedPipelineVal = 0;
+  let wonVal = 0;
+  let lostVal = 0;
+
+  const stageSummaries = stages.map((stg) => {
+    const stgOpps = opps.filter((o) => o.stageId === stg.id);
+    const total = stgOpps.reduce((sum, o) => sum + o.amount, 0);
+    const weighted = stgOpps.reduce((sum, o) => sum + (o.amount * o.probability) / 100, 0);
+
+    if (stg.isWon) {
+      wonVal += total;
+    } else if (stg.isLost) {
+      lostVal += total;
+    } else {
+      totalPipelineVal += total;
+      weightedPipelineVal += weighted;
+    }
+
+    return {
+      stage_id: stg.id,
+      stage_name: stg.name,
+      display_order: stg.displayOrder,
+      probability: stg.probability,
+      is_won: stg.isWon,
+      is_lost: stg.isLost,
+      count: stgOpps.length,
+      total_amount: total.toFixed(2),
+      weighted_amount: weighted.toFixed(2),
+    };
+  });
+
+  return {
+    total_opportunities: opps.length,
+    total_pipeline_value: totalPipelineVal.toFixed(2),
+    weighted_pipeline_value: weightedPipelineVal.toFixed(2),
+    won_value: wonVal.toFixed(2),
+    lost_value: lostVal.toFixed(2),
+    stages: stageSummaries,
   };
 }
 

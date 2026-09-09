@@ -48,4 +48,12 @@ class TenantService:
             locale=data.locale,
             is_active=True,
         )
-        return await self.repo.create(tenant)
+        created_tenant = await self.repo.create(tenant)
+
+        # Provision default pipeline & stages for new tenant
+        from crm.modules.pipelines.service import PipelineService
+
+        pipeline_service = PipelineService(self.session)
+        await pipeline_service.seed_default_pipeline(created_tenant.id)
+
+        return created_tenant

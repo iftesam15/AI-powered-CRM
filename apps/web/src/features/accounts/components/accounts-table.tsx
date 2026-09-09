@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { ExportButton } from "@/features/exports/components/export-button";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { PaginationFooter } from "@/components/shared/pagination-footer";
@@ -44,6 +45,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import {
   accountsQueryOptions,
   useDeleteAccount,
@@ -60,6 +62,7 @@ export function AccountsTable() {
   const [industry, setIndustry] = useState<string>("all");
   const [offset, setOffset] = useState(0);
   const [editing, setEditing] = useState<CrmAccount | null>(null);
+  const [deleting, setDeleting] = useState<CrmAccount | null>(null);
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -113,6 +116,9 @@ export function AccountsTable() {
               <SelectItem value="Technology & Software">Technology</SelectItem>
             </SelectContent>
           </Select>
+          <PermissionGate permission={PERMISSIONS.exportsRead}>
+            <ExportButton entityType="accounts" />
+          </PermissionGate>
         </div>
       </div>
 
@@ -236,15 +242,7 @@ export function AccountsTable() {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
-                            onClick={() => {
-                              if (
-                                confirm(
-                                  `Are you sure you want to delete '${account.name}'?`
-                                )
-                              ) {
-                                deleteMutation.mutate(account.id);
-                              }
-                            }}
+                            onClick={() => setDeleting(account)}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete Account
@@ -272,6 +270,30 @@ export function AccountsTable() {
         open={Boolean(editing)}
         onOpenChange={(open) => {
           if (!open) setEditing(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
+        title="Delete Account"
+        description={
+          <>
+            Are you sure you want to delete{" "}
+            <strong className="text-foreground">{deleting?.name}</strong>? This action
+            cannot be undone and all associated contacts and records may be affected.
+          </>
+        }
+        confirmText="Delete Account"
+        variant="destructive"
+        isLoading={deleteMutation.isPending}
+        onConfirm={async () => {
+          if (deleting) {
+            await deleteMutation.mutateAsync(deleting.id);
+            setDeleting(null);
+          }
         }}
       />
     </div>

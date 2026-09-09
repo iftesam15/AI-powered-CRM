@@ -24,7 +24,9 @@ export const PERMISSIONS = {
   tasksRead: "tasks:read",
   tasksWrite: "tasks:write",
   reportsRead: "reports:read",
+  searchRead: "search:read",
   importsWrite: "imports:write",
+  exportsRead: "exports:read",
   usersRead: "users:read",
   usersWrite: "users:write",
   tenantRead: "tenant:read",
@@ -43,6 +45,8 @@ const READ_ONLY: Permission[] = [
   PERMISSIONS.activitiesRead,
   PERMISSIONS.tasksRead,
   PERMISSIONS.reportsRead,
+  PERMISSIONS.searchRead,
+  PERMISSIONS.exportsRead,
 ];
 
 const SALES_REP: Permission[] = [

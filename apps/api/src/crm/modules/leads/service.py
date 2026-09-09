@@ -312,13 +312,34 @@ class LeadService:
             changes=diff({}, {"first_name": contact.first_name, "last_name": contact.last_name, "email": contact.email}),
         )
 
-        # 3. Update Lead state
+        # 3. Optional Opportunity Creation
+        target_opportunity_id: UUID | None = None
+        if dto.opportunity_name and dto.opportunity_name.strip():
+            from crm.modules.opportunities.schemas import OpportunityCreate
+            from crm.modules.opportunities.service import OpportunityService
+
+            opp_service = OpportunityService(self.session)
+            opp = await opp_service.create_opportunity(
+                actor=actor,
+                dto=OpportunityCreate(
+                    name=dto.opportunity_name.strip(),
+                    account_id=target_account_id,
+                    primary_contact_id=contact.id,
+                    owner_id=lead.owner_id or actor.id,
+                    lead_id=lead.id,
+                ),
+                context=context,
+            )
+            target_opportunity_id = opp.id
+
+        # 4. Update Lead state
         old_lead_status = lead.status
         lead.status = "converted"
         lead.is_converted = True
         lead.converted_at = datetime.now(timezone.utc)
         lead.converted_contact_id = contact.id
         lead.converted_account_id = target_account_id
+        lead.converted_opportunity_id = target_opportunity_id
 
         lead = await self.repo.update(lead)
 
@@ -327,6 +348,8 @@ class LeadService:
             summary += f" and created account {account_created.name}"
         elif target_account_id:
             summary += " and linked to existing account"
+        if target_opportunity_id:
+            summary += f" and created opportunity '{dto.opportunity_name.strip()}'"
 
         self.audit.record(
             tenant_id=tenant_id,
@@ -345,4 +368,5 @@ class LeadService:
             lead=lead_dto,
             contact_id=contact.id,
             account_id=target_account_id,
+            opportunity_id=target_opportunity_id,
         )

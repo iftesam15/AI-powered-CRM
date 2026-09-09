@@ -31,6 +31,22 @@ import {
   mockListLeads,
   mockListTasks,
   mockListUsers,
+  mockListPipelines,
+  mockGetDefaultPipeline,
+  mockGetPipeline,
+  mockCreateStage,
+  mockUpdateStage,
+  mockDeleteStage,
+  mockReorderStages,
+  mockListOpportunities,
+  mockGetOpportunity,
+  mockCreateOpportunity,
+  mockUpdateOpportunity,
+  mockMoveOpportunityStage,
+  mockCloseOpportunityWon,
+  mockCloseOpportunityLost,
+  mockDeleteOpportunity,
+  mockGetPipelineSummary,
   mockUpdateAccount,
   mockUpdateContact,
   mockUpdateLead,
@@ -332,6 +348,12 @@ export async function handleMockApiRequest(
   if (module === "tasks") {
     return handleTasks(request.method, segments, search, body, actor);
   }
+  if (module === "pipelines") {
+    return handlePipelines(request.method, segments, search, body, actor);
+  }
+  if (module === "opportunities") {
+    return handleOpportunities(request.method, segments, search, body, actor);
+  }
   return null;
 }
 
@@ -593,11 +615,11 @@ function handleActivities(
       }
 
       const res = mockCreateActivity(actor.id, {
-        activity_type: b.activity_type as any,
+        activity_type: b.activity_type as "call" | "meeting" | "email" | "note",
         title: b.title,
         description: typeof b.description === "string" ? b.description : null,
         performed_at: typeof b.performed_at === "string" ? b.performed_at : null,
-        entity_type: b.entity_type as any,
+        entity_type: b.entity_type as "account" | "contact",
         entity_id: b.entity_id,
         account_id: typeof b.account_id === "string" ? b.account_id : null,
         contact_id: typeof b.contact_id === "string" ? b.contact_id : null,
@@ -670,8 +692,8 @@ function handleTasks(
       const res = mockCreateTask(actor.id, {
         title: b.title,
         description: typeof b.description === "string" ? b.description : null,
-        status: typeof b.status === "string" ? (b.status as any) : undefined,
-        priority: typeof b.priority === "string" ? (b.priority as any) : undefined,
+        status: typeof b.status === "string" ? (b.status as "pending" | "in_progress" | "completed" | "cancelled") : undefined,
+        priority: typeof b.priority === "string" ? (b.priority as "low" | "medium" | "high") : undefined,
         due_date: typeof b.due_date === "string" ? b.due_date : null,
         entity_type: typeof b.entity_type === "string" ? b.entity_type : null,
         entity_id: typeof b.entity_id === "string" ? b.entity_id : null,
@@ -695,8 +717,8 @@ function handleTasks(
     const res = mockUpdateTask(actor.id, taskId, {
       title: typeof b.title === "string" ? b.title : undefined,
       description: typeof b.description === "string" ? b.description : b.description === null ? null : undefined,
-      status: typeof b.status === "string" ? (b.status as any) : undefined,
-      priority: typeof b.priority === "string" ? (b.priority as any) : undefined,
+      status: typeof b.status === "string" ? (b.status as "pending" | "in_progress" | "completed" | "cancelled") : undefined,
+      priority: typeof b.priority === "string" ? (b.priority as "low" | "medium" | "high") : undefined,
       due_date: typeof b.due_date === "string" ? b.due_date : b.due_date === null ? null : undefined,
       assigned_to_id: typeof b.assigned_to_id === "string" ? b.assigned_to_id : b.assigned_to_id === null ? null : undefined,
     });
@@ -785,6 +807,8 @@ function handleLeads(
         create_account: typeof b.create_account === "boolean" ? b.create_account : true,
         account_id: typeof b.account_id === "string" ? b.account_id : null,
         account_name: typeof b.account_name === "string" ? b.account_name : null,
+        opportunity_name: typeof b.opportunity_name === "string" ? b.opportunity_name : null,
+        opportunity_amount: typeof b.opportunity_amount === "number" || typeof b.opportunity_amount === "string" ? b.opportunity_amount : null,
       });
 
       if (res.kind === "forbidden") return forbidden();
@@ -826,6 +850,259 @@ function handleLeads(
   if (method === "DELETE") {
     if (!grants(actor, PERMISSIONS.leadsWrite)) return forbidden();
     const res = mockDeleteLead(actor.id, leadId);
+    if (res.kind === "forbidden") return forbidden();
+    return new NextResponse(null, { status: 204 });
+  }
+
+  return null;
+}
+
+function handlePipelines(
+  method: string,
+  segments: string[],
+  _search: URLSearchParams,
+  body: unknown,
+  actor: MockUserRecord,
+): NextResponse | null {
+  const [pipelineId, subresource, stageId] = segments;
+
+  if (!pipelineId) {
+    if (method === "GET") {
+      if (!grants(actor, PERMISSIONS.pipelineRead)) return forbidden();
+      return NextResponse.json(mockListPipelines(actor.tenantId));
+    }
+    return null;
+  }
+
+  if (pipelineId === "default") {
+    if (method === "GET") {
+      if (!grants(actor, PERMISSIONS.pipelineRead)) return forbidden();
+      const pipe = mockGetDefaultPipeline(actor.tenantId);
+      if (!pipe) return error(404, "Pipeline not found", "not_found");
+      return NextResponse.json(pipe);
+    }
+    return null;
+  }
+
+  // /pipelines/[pipelineId]/stages/reorder
+  if (subresource === "stages" && stageId === "reorder") {
+    if (method === "POST") {
+      if (!grants(actor, PERMISSIONS.pipelineConfigure)) return forbidden();
+      const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
+      const stages = Array.isArray(b.stages) ? (b.stages as Array<{ id: string; display_order: number }>) : [];
+      const res = mockReorderStages(actor.id, pipelineId, stages);
+      if (res.kind === "forbidden") return forbidden();
+      return NextResponse.json(res.stages);
+    }
+    return null;
+  }
+
+  // /pipelines/[pipelineId]/stages or /pipelines/[pipelineId]/stages/[stageId]
+  if (subresource === "stages") {
+    if (!stageId) {
+      if (method === "POST") {
+        if (!grants(actor, PERMISSIONS.pipelineConfigure)) return forbidden();
+        const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
+        if (!b.name || typeof b.name !== "string") return invalid({ name: ["Required"] });
+        const res = mockCreateStage(actor.id, pipelineId, {
+          name: b.name,
+          display_order: typeof b.display_order === "number" ? b.display_order : undefined,
+          probability: typeof b.probability === "number" ? b.probability : undefined,
+          is_won: typeof b.is_won === "boolean" ? b.is_won : undefined,
+          is_lost: typeof b.is_lost === "boolean" ? b.is_lost : undefined,
+        });
+        if (res.kind === "forbidden") return forbidden();
+        return NextResponse.json(res.stage, { status: 201 });
+      }
+      return null;
+    }
+
+    if (method === "PATCH") {
+      if (!grants(actor, PERMISSIONS.pipelineConfigure)) return forbidden();
+      const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
+      const res = mockUpdateStage(actor.id, pipelineId, stageId, {
+        name: typeof b.name === "string" ? b.name : undefined,
+        display_order: typeof b.display_order === "number" ? b.display_order : undefined,
+        probability: typeof b.probability === "number" ? b.probability : undefined,
+        is_won: typeof b.is_won === "boolean" ? b.is_won : undefined,
+        is_lost: typeof b.is_lost === "boolean" ? b.is_lost : undefined,
+      });
+      if (res.kind === "forbidden") return forbidden();
+      return NextResponse.json(res.stage);
+    }
+
+    if (method === "DELETE") {
+      if (!grants(actor, PERMISSIONS.pipelineConfigure)) return forbidden();
+      const res = mockDeleteStage(actor.id, pipelineId, stageId);
+      if (res.kind === "forbidden") return forbidden();
+      if (res.kind === "conflict") return error(409, res.detail, "conflict");
+      return new NextResponse(null, { status: 204 });
+    }
+
+    return null;
+  }
+
+  if (method === "GET") {
+    if (!grants(actor, PERMISSIONS.pipelineRead)) return forbidden();
+    const pipe = mockGetPipeline(actor.tenantId, pipelineId);
+    if (!pipe) return error(404, "Pipeline not found", "not_found");
+    return NextResponse.json(pipe);
+  }
+
+  return null;
+}
+
+function handleOpportunities(
+  method: string,
+  segments: string[],
+  search: URLSearchParams,
+  body: unknown,
+  actor: MockUserRecord,
+): NextResponse | null {
+  const [oppId, action] = segments;
+
+  if (!oppId) {
+    if (method === "GET") {
+      if (!grants(actor, PERMISSIONS.opportunitiesRead)) return forbidden();
+      const bounds = paging(search);
+      if (!bounds) return invalid({ limit: ["Input should be between 1 and 100"] });
+
+      const res = mockListOpportunities(actor.tenantId, {
+        q: search.get("q") ?? undefined,
+        pipeline_id: search.get("pipeline_id") ?? undefined,
+        stage_id: search.get("stage_id") ?? undefined,
+        status: search.get("status") ?? undefined,
+        owner_id: search.get("owner_id") ?? undefined,
+        account_id: search.get("account_id") ?? undefined,
+        sort: search.get("sort") ?? undefined,
+        order: (search.get("order") as "asc" | "desc") ?? undefined,
+        limit: bounds.limit,
+        offset: bounds.offset,
+      });
+      return NextResponse.json(res);
+    }
+
+    if (method === "POST") {
+      if (!grants(actor, PERMISSIONS.opportunitiesWrite)) return forbidden();
+      const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
+      if (!b.name || typeof b.name !== "string") return invalid({ name: ["Required"] });
+
+      const res = mockCreateOpportunity(actor.id, {
+        name: b.name,
+        amount: typeof b.amount === "number" || typeof b.amount === "string" ? b.amount : 0,
+        currency: typeof b.currency === "string" ? b.currency : "USD",
+        pipeline_id: typeof b.pipeline_id === "string" ? b.pipeline_id : undefined,
+        stage_id: typeof b.stage_id === "string" ? b.stage_id : undefined,
+        account_id: typeof b.account_id === "string" ? b.account_id : null,
+        primary_contact_id: typeof b.primary_contact_id === "string" ? b.primary_contact_id : null,
+        owner_id: typeof b.owner_id === "string" ? b.owner_id : null,
+        lead_id: typeof b.lead_id === "string" ? b.lead_id : null,
+        expected_close_date: typeof b.expected_close_date === "string" ? b.expected_close_date : null,
+        probability: typeof b.probability === "number" ? b.probability : undefined,
+        notes: typeof b.notes === "string" ? b.notes : null,
+      });
+
+      if (res.kind === "forbidden") return forbidden();
+      if (res.kind === "invalid") return invalid({ body: [res.detail] });
+      return NextResponse.json(res.opportunity, { status: 201 });
+    }
+
+    return null;
+  }
+
+  // /opportunities/summary
+  if (oppId === "summary") {
+    if (method === "GET") {
+      if (!grants(actor, PERMISSIONS.opportunitiesRead)) return forbidden();
+      const pipelineId = search.get("pipeline_id");
+      return NextResponse.json(mockGetPipelineSummary(actor.tenantId, pipelineId));
+    }
+    return null;
+  }
+
+  // Action endpoints on opportunity
+  if (action === "move-stage") {
+    if (method === "POST") {
+      if (!grants(actor, PERMISSIONS.opportunitiesWrite)) return forbidden();
+      const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
+      if (!b.stage_id || typeof b.stage_id !== "string") return invalid({ stage_id: ["Required"] });
+
+      const res = mockMoveOpportunityStage(
+        actor.id,
+        oppId,
+        b.stage_id,
+        typeof b.loss_reason === "string" ? b.loss_reason : null,
+      );
+      if (res.kind === "forbidden") return forbidden();
+      if (res.kind === "invalid") return error(422, res.detail, "validation_error");
+      return NextResponse.json(res.opportunity);
+    }
+    return null;
+  }
+
+  if (action === "won") {
+    if (method === "POST") {
+      if (!grants(actor, PERMISSIONS.opportunitiesWrite)) return forbidden();
+      const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
+      const res = mockCloseOpportunityWon(actor.id, oppId, typeof b.notes === "string" ? b.notes : null);
+      if (res.kind === "forbidden") return forbidden();
+      if (res.kind === "invalid") return error(422, res.detail, "validation_error");
+      return NextResponse.json(res.opportunity);
+    }
+    return null;
+  }
+
+  if (action === "lost") {
+    if (method === "POST") {
+      if (!grants(actor, PERMISSIONS.opportunitiesWrite)) return forbidden();
+      const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
+      if (!b.loss_reason || typeof b.loss_reason !== "string" || !b.loss_reason.trim()) {
+        return error(422, "Loss reason is required when closing an opportunity as Lost.", "validation_error");
+      }
+      const res = mockCloseOpportunityLost(
+        actor.id,
+        oppId,
+        b.loss_reason,
+        typeof b.notes === "string" ? b.notes : null,
+      );
+      if (res.kind === "forbidden") return forbidden();
+      if (res.kind === "invalid") return error(422, res.detail, "validation_error");
+      return NextResponse.json(res.opportunity);
+    }
+    return null;
+  }
+
+  if (method === "GET") {
+    if (!grants(actor, PERMISSIONS.opportunitiesRead)) return forbidden();
+    const opp = mockGetOpportunity(actor.tenantId, oppId);
+    if (!opp) return error(403, "You do not have access to this opportunity.", "forbidden");
+    return NextResponse.json(opp);
+  }
+
+  if (method === "PATCH") {
+    if (!grants(actor, PERMISSIONS.opportunitiesWrite)) return forbidden();
+    const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
+    const res = mockUpdateOpportunity(actor.id, oppId, {
+      name: typeof b.name === "string" ? b.name : undefined,
+      amount: typeof b.amount === "number" || typeof b.amount === "string" ? b.amount : undefined,
+      currency: typeof b.currency === "string" ? b.currency : undefined,
+      stage_id: typeof b.stage_id === "string" ? b.stage_id : undefined,
+      account_id: typeof b.account_id === "string" ? b.account_id : b.account_id === null ? null : undefined,
+      primary_contact_id: typeof b.primary_contact_id === "string" ? b.primary_contact_id : b.primary_contact_id === null ? null : undefined,
+      owner_id: typeof b.owner_id === "string" ? b.owner_id : b.owner_id === null ? null : undefined,
+      expected_close_date: typeof b.expected_close_date === "string" ? b.expected_close_date : b.expected_close_date === null ? null : undefined,
+      probability: typeof b.probability === "number" ? b.probability : undefined,
+      notes: typeof b.notes === "string" ? b.notes : b.notes === null ? null : undefined,
+      loss_reason: typeof b.loss_reason === "string" ? b.loss_reason : undefined,
+    });
+    if (res.kind === "forbidden") return forbidden();
+    if (res.kind === "invalid") return error(422, res.detail, "validation_error");
+    return NextResponse.json(res.opportunity);
+  }
+
+  if (method === "DELETE") {
+    if (!grants(actor, PERMISSIONS.opportunitiesWrite)) return forbidden();
+    const res = mockDeleteOpportunity(actor.id, oppId);
     if (res.kind === "forbidden") return forbidden();
     return new NextResponse(null, { status: 204 });
   }
