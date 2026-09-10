@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { StylePresetToggle } from "@/components/shared/style-preset-toggle";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,6 +78,7 @@ export function Topbar() {
 
         <SearchCommand open={searchOpen} onOpenChange={setSearchOpen} />
 
+        <StylePresetToggle />
         <ThemeToggle />
       </div>
     </header>

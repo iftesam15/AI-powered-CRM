@@ -296,7 +296,7 @@ Sprint 1 of [CRM_SPRINT_PLAN.md](./CRM_SPRINT_PLAN.md) is built on the frontend 
 | Repo layout | Monorepo: `apps/web`, `apps/api`, `packages/`, npm workspaces | Run everything from the repo root |
 | Auth session | **BFF httpOnly cookie** (§4.10, option 1) | The browser never holds a token; see §9.3 |
 | Backend stand-in | In-memory mock behind `NEXT_PUBLIC_USE_MOCK_API` | The Sprint 1 flow is clickable before FastAPI exists |
-| Design tokens | `preset_logistic_one.css` copied verbatim to `src/app/globals.css` | Do not hand-edit colors; edit the preset and re-copy |
+| Design tokens | `style-presets/claude_blue_2.css` copied verbatim to `src/app/globals.css` | Do not hand-edit colors; edit the preset and re-copy |
 | Component source | shadcn/ui `new-york`, fetched from the registry | 24 primitives in `src/components/ui/` |
 | Icons | `lucide-react` | One family only, see §9.6 |
 
@@ -393,7 +393,7 @@ styled thin and in `--sidebar-border` so it reads as part of the panel rather th
 
 ### 9.6 Design system and theming
 
-**Tokens.** `globals.css` is `preset_logistic_one.css` byte for byte, plus one `tw-animate-css` import that the shadcn animations need. Colors, radius, shadows and fonts all come from the preset, and no component hardcodes a color. Note that the build re-encodes `oklch()` into a hex fallback plus `lab()`; the values are preserved, so grepping the built CSS for the preset's literal `oklch(...)` strings will not match.
+**Tokens.** `globals.css` is `style-presets/claude_blue_2.css` byte for byte, plus one `tw-animate-css` import that the shadcn animations need. Colors, radius, shadows and fonts all come from the preset, and no component hardcodes a color. Note that the build re-encodes `oklch()` into a hex fallback plus `lab()`; the values are preserved, so grepping the built CSS for the preset's literal `oklch(...)` strings will not match.
 
 **Light and dark.** `next-themes` with `attribute="class"`, matching the preset's `@custom-variant dark (&:is(.dark *))`. Changing one without the other breaks theming silently. `enableColorScheme` is left on so native controls and scrollbars follow the theme, and `disableTransitionOnChange` prevents a colour sweep on switch.
 

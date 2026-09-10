@@ -23,7 +23,8 @@
     "api:typecheck": "node scripts/api.mjs mypy",
     "up": "docker compose up -d --build",
     "down": "docker compose down",
-    "logs": "docker compose logs -f"
+    "logs": "docker compose logs -f",
+    "sync:presets": "node scripts/sync-style-presets.mjs"
   },
   "engines": {
     "node": ">=20.9.0"

@@ -2,6 +2,7 @@ import { Route } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { ApiStatus } from "@/components/layout/api-status";
+import { StylePresetToggle } from "@/components/shared/style-preset-toggle";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { env } from "@/config/env";
 
@@ -47,7 +48,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <main className="relative flex items-center justify-center px-6 py-12 lg:px-12">
-        <div className="absolute right-4 top-4">
+        <div className="absolute right-4 top-4 flex items-center gap-1">
+          <StylePresetToggle />
           <ThemeToggle />
         </div>
         <div className="w-full max-w-sm">{children}</div>

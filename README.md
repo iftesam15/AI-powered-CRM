@@ -35,7 +35,10 @@ The API implements the multi-tenant auth and session contract defined in
 ├── docs/                     # SRS, architecture, structures, sprint plan
 ├── docker-compose.yml        # postgres, redis, api
 ├── Makefile                  # mirrors the npm scripts below
-└── preset_logistic_one.css   # design tokens, source of truth for theming
+└── style-presets/            # editable design-token CSS (sync → apps/web/src/styles/presets)
+    ├── claude_blue_2.css
+    ├── logistic_one.css
+    └── telesto_preset.css
 ```
 
 ## Prerequisites
@@ -171,13 +174,14 @@ so the switch is a no-op for every feature module.
 
 ## Design tokens
 
-`preset_logistic_one.css` is the source of truth and is copied verbatim into
-`apps/web/src/app/globals.css`, which carries both the light (`:root`) and dark (`.dark`)
-token blocks. To change the theme, edit the preset and re-copy it. Do not hardcode colors
-in components.
+Edit files in `style-presets/`, then run `npm run sync:presets` to publish them into
+`apps/web/src/styles/presets/` as `[data-preset="…"]` scopes. The active preset is chosen
+at runtime (palette control in the topbar / auth header) and stored in `localStorage`.
+Light/dark still comes from the theme toggle; both layers compose on `<html>`.
 
-Every token pair the app renders was checked against WCAG AA in both themes and passes.
-If you add a pair, check it: the preset's dark block has one trap, where
+Do not hardcode colors in components. Every token pair the app renders was checked against
+WCAG AA in both themes for the Logistic One preset and passes for pairs that still apply.
+If you add a pair, check it: the dark block has one trap, where
 `--sidebar-primary-foreground` is near-white against an already-light `--sidebar-primary`.
 See [docs/CRM_FRONTEND_STRUCTURE.md §9.6](./docs/CRM_FRONTEND_STRUCTURE.md).
 
